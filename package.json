@@ -11,7 +11,8 @@
     "inquirer": "^8.2.6"
   },
   "scripts": {
-    "start": "node aicommit.js"
+    "start": "node aicommit.js",
+    "publish-package": "npm version patch && npm publish"
   },
   "author": "HashCookie",
   "license": "ISC",
