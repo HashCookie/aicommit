@@ -1,11 +1,29 @@
-# UniqueAicommit
+<h1 align="center">UniqueAicommit</h1>
 
-AI-powered commit message generator.
+[中文](README_ZH.md)
+
+<p align="center">
+AI-powered commit message generator for enhancing workflow via CLI.
+</p>
 
 ## Installation
 
+### Using npm
+
 ```sh
 npm install -g unique-aicommit
+```
+
+### Using yarn
+
+```sh
+yarn global add unique-aicommit
+```
+
+### Using pnpm
+
+```sh
+pnpm add -g unique-aicommit
 ```
 
 ## Usage
