@@ -3,7 +3,14 @@
 const { exec } = require("child_process");
 const axios = require("axios");
 const inquirer = require("inquirer");
+const fs = require("fs");
+const path = require("path");
 const { getApiKey, setConfig } = require("./config");
+
+const packageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "package.json"), "utf8")
+);
+const VERSION = packageJson.version;
 
 const baseURL = "https://api.deepseek.com";
 
@@ -13,24 +20,37 @@ const repoPath = process.cwd();
 // 命令行参数解析
 const args = process.argv.slice(2);
 
-if (
-  args[0] === "config" &&
-  args[1] === "set" &&
-  args[2].startsWith("DeepSeek_KEY=")
-) {
-  const apiKey = args[2].split("=")[1];
-  setConfig("DeepSeek_KEY", apiKey);
-  console.log("API key has been set successfully.");
+if (args[0] === "--version") {
+  console.log(`aicommit version ${VERSION}`);
   process.exit(0);
 }
 
-// 检查API密钥是否已设置
-const apiKey = getApiKey();
-if (!apiKey) {
-  console.error(
-    "API key is not set. Please set it using: aicommit config set DeepSeek_KEY=<your token>"
-  );
-  process.exit(1);
+if (args[0] === "config") {
+  if (args[1] === "set" && args[2].startsWith("DeepSeek_KEY=")) {
+    const apiKey = args[2].split("=")[1];
+    setConfig("DeepSeek_KEY", apiKey);
+    console.log("API key has been set successfully.");
+    process.exit(0);
+  } else if (args[1] === "get" && args[2] === "DeepSeek_KEY") {
+    const apiKey = getApiKey();
+    if (apiKey) {
+      console.log(`DeepSeek_KEY: ${apiKey}`);
+    } else {
+      console.log("DeepSeek_KEY is not set.");
+    }
+    process.exit(0);
+  }
+}
+
+// 检查API密钥是否已设置（只在执行常规 aicommit 命令时检查）
+if (args.length === 0) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.error(
+      "API key is not set. Please set it using: aicommit config set DeepSeek_KEY=<your token>"
+    );
+    process.exit(1);
+  }
 }
 
 function isGitRepository() {
@@ -42,6 +62,7 @@ function isGitRepository() {
 }
 
 function generateCommitMessage(diff) {
+  const apiKey = getApiKey();
   // 准备API请求数据
   const messages = [
     { role: "system", content: "You are a helpful assistant" },
@@ -62,6 +83,8 @@ function generateCommitMessage(diff) {
       - feat: add new user authentication method
       - fix: correct typo in README
       - docs: update API documentation
+      
+      Please provide the commit message directly, without any markdown formatting or code block symbols.
       
       Here is the git diff:
       ${diff}
@@ -153,45 +176,47 @@ function checkStagedChanges() {
 }
 
 // 主流程
-isGitRepository()
-  .then((isGitRepo) => {
-    if (!isGitRepo) {
-      console.log("Error: The current directory is not a Git repository.");
-      console.log(
-        "Please run 'aicommit' in a Git repository or initialize one with 'git init'."
-      );
-      process.exit(1);
-    }
+if (args.length === 0) {
+  isGitRepository()
+    .then((isGitRepo) => {
+      if (!isGitRepo) {
+        console.log("Error: The current directory is not a Git repository.");
+        console.log(
+          "Please run 'aicommit' in a Git repository or initialize one with 'git init'."
+        );
+        process.exit(1);
+      }
 
-    return checkStagedChanges();
-  })
-  .then((hasStaged) => {
-    if (!hasStaged) {
-      console.log(
-        "Warning: No staged changes found. Please use 'git add' to stage your changes before committing."
-      );
-      console.log("After staging your changes, run 'aicommit' again.");
-      return;
-    }
-
-    // 获取暂存的差异
-    exec(`git -C ${repoPath} diff --staged`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing git diff: ${error}`);
+      return checkStagedChanges();
+    })
+    .then((hasStaged) => {
+      if (!hasStaged) {
+        console.log(
+          "Warning: No staged changes found. Please use 'git add' to stage your changes before committing."
+        );
+        console.log("After staging your changes, run 'aicommit' again.");
         return;
       }
-      const diff = stdout;
 
-      // 生成提交消息并提示用户选择
-      generateCommitMessage(diff).then((commitMessage) => {
-        if (commitMessage) {
-          promptCommit(commitMessage);
-        } else {
-          console.log("Failed to generate commit message. Please try again.");
+      // 获取暂存的差异
+      exec(`git -C ${repoPath} diff --staged`, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing git diff: ${error}`);
+          return;
         }
+        const diff = stdout;
+
+        // 生成提交消息并提示用户选择
+        generateCommitMessage(diff).then((commitMessage) => {
+          if (commitMessage) {
+            promptCommit(commitMessage);
+          } else {
+            console.log("Failed to generate commit message. Please try again.");
+          }
+        });
       });
+    })
+    .catch((error) => {
+      console.error("Error:", error);
     });
-  })
-  .catch((error) => {
-    console.error("Error:", error);
-  });
+}
