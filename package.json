@@ -2,22 +2,22 @@
   "name": "unique-aicommit",
   "version": "1.0.6",
   "description": "A tool to generate standardized commit messages using AI.",
-  "main": "aicommit.js",
+  "main": "index.js",
   "bin": {
-    "aicommit": "./aicommit.js"
+    "aicommit": "./index.js"
   },
   "dependencies": {
     "axios": "^0.21.1",
     "inquirer": "^8.2.6"
   },
   "scripts": {
-    "start": "node aicommit.js",
+    "start": "node index.js",
     "publish-package": "npm version patch && npm publish"
   },
   "author": "HashCookie",
   "license": "ISC",
   "files": [
-    "aicommit.js",
+    "index.js",
     "config.js",
     "gitOperations.js",
     "messageGenerator.js"
