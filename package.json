@@ -1,6 +1,6 @@
 {
   "name": "unique-aicommit",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A tool to generate standardized commit messages using AI.",
   "main": "aicommit.js",
   "bin": {
@@ -17,6 +17,8 @@
   "license": "ISC",
   "files": [
     "aicommit.js",
-    "config.js"
+    "config.js",
+    "gitOperations.js",
+    "messageGenerator.js"
   ]
 }
