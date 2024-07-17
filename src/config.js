@@ -4,6 +4,18 @@ const os = require("os");
 
 const CONFIG_FILE = path.join(os.homedir(), ".aicommitrc");
 
+const DEFAULT_PROVIDER = "deepseek";
+const PROVIDER_CONFIGS = {
+  deepseek: {
+    defaultModel: "deepseek-chat",
+    apiKeyName: "DEEPSEEK_KEY",
+  },
+  moonshot: {
+    defaultModel: "moonshot-v1-8k",
+    apiKeyName: "MOONSHOT_KEY",
+  },
+};
+
 function getConfig() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
@@ -16,7 +28,22 @@ function setConfig(key, value) {
   const config = getConfig();
   const normalizedKey = normalizeKey(key);
   config[normalizedKey] = value;
+
+  // 当设置 AI_PROVIDER 时，自动更新 AI_MODEL
+  if (normalizedKey === "AI_PROVIDER") {
+    const providerConfig = PROVIDER_CONFIGS[value.toLowerCase()];
+    if (providerConfig) {
+      config["AI_MODEL"] = providerConfig.defaultModel;
+    }
+  }
+
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+function getAIModel() {
+  const provider = getAIProvider();
+  const config = getConfig();
+  return config["AI_MODEL"] || PROVIDER_CONFIGS[provider].defaultModel;
 }
 
 function getConfigValue(key) {
@@ -27,33 +54,33 @@ function getConfigValue(key) {
 
 function normalizeKey(key) {
   const keyMap = {
-    api_key: "API_KEY",
     ai_provider: "AI_PROVIDER",
     ai_model: "AI_MODEL",
   };
-  return keyMap[key.toLowerCase()] || key;
+  return keyMap[key.toLowerCase()] || key.toUpperCase();
 }
 
 function getApiKey() {
-  return getConfigValue("API_KEY");
+  const provider = getAIProvider();
+  const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+  return getConfigValue(apiKeyName);
 }
 
 function getAIProvider() {
-  return getConfigValue("AI_PROVIDER") || "deepseek";
-}
-
-function getAIModel() {
-  return getConfigValue("AI_MODEL") || "deepseek-chat";
+  return getConfigValue("AI_PROVIDER") || DEFAULT_PROVIDER;
 }
 
 function listConfig() {
   const config = getConfig();
+  const provider = getAIProvider();
+  const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+
   return {
-    API_KEY: config.API_KEY
-      ? `${config.API_KEY.substr(0, 4)}...${config.API_KEY.substr(-4)}`
+    [apiKeyName]: config[apiKeyName]
+      ? `${config[apiKeyName].substr(0, 4)}...${config[apiKeyName].substr(-4)}`
       : "Not Set",
-    AI_PROVIDER: config.AI_PROVIDER || "deepseek (Default)",
-    AI_MODEL: config.AI_MODEL || "deepseek-chat (Default)",
+    AI_PROVIDER: config.AI_PROVIDER || `${DEFAULT_PROVIDER} (Default)`,
+    AI_MODEL: getAIModel(),
   };
 }
 
@@ -65,4 +92,5 @@ module.exports = {
   getAIModel,
   listConfig,
   getConfigValue,
+  PROVIDER_CONFIGS,
 };

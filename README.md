@@ -28,7 +28,12 @@ pnpm add -g unique-aicommit
 
 ## Usage
 
-Retrieve your API key from [DeepSeek](https://www.deepseek.com/)
+### Supported Models:
+
+- [DeepSeek](https://www.deepseek.com/)
+- [Moonshot](https://platform.moonshot.cn/)
+
+Get api key from 👆
 
 Set the key:
 

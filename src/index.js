@@ -9,6 +9,7 @@ const {
   getAIModel,
   listConfig,
   getConfigValue,
+  PROVIDER_CONFIGS,
 } = require("./config");
 const {
   isGitRepository,
@@ -63,10 +64,12 @@ if (args[0] === "config") {
 }
 
 if (args.length === 0) {
+  const provider = getAIProvider();
   const apiKey = getApiKey();
   if (!apiKey) {
+    const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
     console.error(
-      "API key not set. Please use the following command to set it: `aicommit config set API_KEY=<your key>`"
+      `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
     );
     process.exit(1);
   }
