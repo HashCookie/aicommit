@@ -2,6 +2,13 @@ const { exec } = require("child_process");
 
 const repoPath = process.cwd();
 
+const ignoredFiles = [
+  "pnpm-lock.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  "node_modules",
+];
+
 function isGitRepository() {
   return new Promise((resolve) => {
     exec("git rev-parse --is-inside-work-tree", (error) => {
@@ -26,13 +33,38 @@ function checkStagedChanges() {
 
 function executeDiff() {
   return new Promise((resolve, reject) => {
-    exec(`git -C ${repoPath} diff --staged`, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(stdout);
+    exec(
+      `git -C ${repoPath} diff --staged --name-only`,
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        const stagedFiles = stdout
+          .split("\n")
+          .filter((file) => file.trim() !== "");
+        const filteredFiles = stagedFiles.filter(
+          (file) => !ignoredFiles.some((ignored) => file.includes(ignored))
+        );
+
+        if (filteredFiles.length === 0) {
+          resolve("");
+          return;
+        }
+
+        const diffCommand = `git -C ${repoPath} diff --staged ${filteredFiles.join(
+          " "
+        )}`;
+        exec(diffCommand, (diffError, diffStdout, diffStderr) => {
+          if (diffError) {
+            reject(diffError);
+          } else {
+            resolve(diffStdout);
+          }
+        });
       }
-    });
+    );
   });
 }
 

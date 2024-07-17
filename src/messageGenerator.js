@@ -6,7 +6,16 @@ const { getApiKey } = require("./config");
 const baseURL = "https://api.deepseek.com";
 const repoPath = process.cwd();
 
+const MAX_DIFF_SIZE = 1000000; // 1MB
+
 function generateCommitMessage(diff) {
+  if (diff.length > MAX_DIFF_SIZE) {
+    console.warn(
+      "Diff is too large. Only the first 1MB will be used for generating the commit message."
+    );
+    diff = diff.substring(0, MAX_DIFF_SIZE);
+  }
+
   const apiKey = getApiKey();
   const messages = [
     { role: "system", content: "You are a helpful assistant" },
