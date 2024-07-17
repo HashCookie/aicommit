@@ -21,6 +21,6 @@
     "src/config.js",
     "src/gitOperations.js",
     "src/messageGenerator.js",
-    "src/aiProvider.js"
+    "src/aiProviders.js"
   ]
 }
