@@ -51,9 +51,9 @@ function listConfig() {
   return {
     API_KEY: config.API_KEY
       ? `${config.API_KEY.substr(0, 4)}...${config.API_KEY.substr(-4)}`
-      : "未设置",
-    AI_PROVIDER: config.AI_PROVIDER || "deepseek (默认)",
-    AI_MODEL: config.AI_MODEL || "deepseek-chat (默认)",
+      : "Not Set",
+    AI_PROVIDER: config.AI_PROVIDER || "deepseek (Default)",
+    AI_MODEL: config.AI_MODEL || "deepseek-chat (Default)",
   };
 }
 

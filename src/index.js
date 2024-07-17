@@ -37,25 +37,27 @@ if (args[0] === "config") {
     const [configKey, configValue] = args[2].split("=");
     if (configValue) {
       setConfig(configKey, configValue);
-      console.log(`${configKey} 已成功设置。`);
+      console.log(`${configKey} has been set up successfully.`);
     } else {
-      console.log("无效的set命令。使用格式：aicommit config set 键=值");
+      console.log(
+        "Invalid set command. Use the format: aicommit config set key=value"
+      );
     }
   } else if (command === "get" && key) {
     const value = getConfigValue(key);
     if (value) {
       console.log(`${key}: ${value}`);
     } else {
-      console.log(`${key} 未设置。`);
+      console.log(`${key} Not set.`);
     }
   } else if (command === "list") {
     const configs = listConfig();
-    console.log("当前配置：");
+    console.log("Current configuration:");
     Object.entries(configs).forEach(([key, value]) => {
       console.log(`${key}: ${value}`);
     });
   } else {
-    console.log("无效的config命令。可用命令：set, get, list");
+    console.log("Invalid config command. Available commands: set, get, list");
   }
   process.exit(0);
 }
@@ -64,7 +66,7 @@ if (args.length === 0) {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.error(
-      "API密钥未设置。请使用以下命令设置：aicommit config set API_KEY=<你的密钥>"
+      "API key not set. Please use the following command to set it: `aicommit config set API_KEY=<your key>`"
     );
     process.exit(1);
   }
@@ -72,9 +74,9 @@ if (args.length === 0) {
   isGitRepository()
     .then((isGitRepo) => {
       if (!isGitRepo) {
-        console.log("错误：当前目录不是Git仓库。");
+        console.log("Error: Current directory is not a Git repository.");
         console.log(
-          "请在Git仓库中运行'aicommit'，或使用'git init'初始化一个仓库。"
+          "Please run 'aicommit' in the Git repository, or use 'git init' to initialize a repository."
         );
         process.exit(1);
       }
@@ -83,9 +85,9 @@ if (args.length === 0) {
     .then((hasStaged) => {
       if (!hasStaged) {
         console.log(
-          "警告：未找到已暂存的更改。请使用'git add'暂存你的更改后再提交。"
+          "Warning: No changes detected to commit. Please use 'git add' to stage your changes before committing."
         );
-        console.log("暂存更改后，再次运行'aicommit'。");
+        console.log("After saving changes, run 'aicommit' again.");
         return;
       }
       return executeDiff();
@@ -99,10 +101,10 @@ if (args.length === 0) {
       if (commitMessage) {
         promptCommit(commitMessage);
       } else {
-        console.log("生成提交消息失败。请重试。");
+        console.log("Failed to generate a commit message. Please try again.");
       }
     })
     .catch((error) => {
-      console.error("错误:", error);
+      console.error("ERROR:", error);
     });
 }

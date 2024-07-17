@@ -16,13 +16,15 @@ function getAIProviderInstance() {
     case "moonshot":
       return new MoonshotProvider(apiKey);
     default:
-      throw new Error(`不支持的AI提供商: ${provider}`);
+      throw new Error(`Unsupported AI providers: ${provider}`);
   }
 }
 
 async function generateCommitMessage(diff) {
   if (diff.length > MAX_DIFF_SIZE) {
-    console.warn("Diff太大。只有前1MB将用于生成提交消息。");
+    console.warn(
+      "Diff is too large. Only the first 1MB will be used to generate the commit message."
+    );
     diff = diff.substring(0, MAX_DIFF_SIZE);
   }
 
@@ -32,7 +34,7 @@ async function generateCommitMessage(diff) {
   try {
     return await aiProvider.generateCommitMessage(diff, model);
   } catch (error) {
-    console.error("生成提交消息时出错:", error);
+    console.error("Error generating commit message.", error);
     return null;
   }
 }
@@ -45,7 +47,7 @@ function promptCommit(commitMessage) {
       {
         type: "confirm",
         name: "confirmCommit",
-        message: `生成的提交消息:\n${commitMessage}\n\n你想用这个消息提交吗？`,
+        message: `Generated commit messages:\n${commitMessage}\n\nDo you want to submit with this message?`,
         default: false,
       },
     ])
@@ -55,10 +57,12 @@ function promptCommit(commitMessage) {
           `git -C ${repoPath} commit -m '${commitMessage}'`,
           (error, stdout, stderr) => {
             if (error) {
-              console.error(`执行git commit时出错: ${error}`);
+              console.error(`git commit error: ${error}`);
               console.error(`Stderr: ${stderr}`);
               if (stderr.includes("nothing to commit")) {
-                console.log("没有要提交的更改。使用 'git add' 暂存文件。");
+                console.log(
+                  "There are no changes to commit. Use 'git add' to temporarily store the file."
+                );
               }
               return;
             }
@@ -66,7 +70,7 @@ function promptCommit(commitMessage) {
           }
         );
       } else {
-        console.log("提交已取消。");
+        console.log("Submission has been canceled.");
       }
     });
 }
