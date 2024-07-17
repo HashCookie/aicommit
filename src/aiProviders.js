@@ -21,9 +21,33 @@ class DeepSeekProvider extends AIProvider {
       {
         role: "system",
         content:
-          "你是一个AI助手，请分析以下git diff并生成一个标准化的提交消息。",
+          "You are an AI assistant, please analyze the git diff below and generate a standardized commit message.",
       },
-      { role: "user", content: `分析以下git diff并生成提交消息:\n\n${diff}` },
+      {
+        role: "user",
+        content: `Analyze the following git diff and generate a standardized commit message following the Conventional Commits specification.
+      The commit message should start with one of the following types:
+      - feat: A new feature
+      - fix: A bug fix
+      - docs: Documentation only changes
+      - style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+      - refactor: A code change that neither fixes a bug nor adds a feature
+      - perf: A code change that improves performance
+      - test: Adding missing tests or correcting existing tests
+      - chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+      
+      Example commit messages:
+      - feat: add new user authentication method
+      - fix: correct typo in README
+      - docs: update API documentation
+      
+      Please provide the commit message directly, without any markdown formatting or code block symbols.
+      
+      Here is the git diff:
+      ${diff}
+      
+      Commit message:`,
+      },
     ];
 
     try {
@@ -60,9 +84,33 @@ class MoonshotProvider extends AIProvider {
       {
         role: "system",
         content:
-          "你是 Kimi，由 Moonshot AI 提供的人工智能助手。请分析以下git diff并生成一个标准化的提交消息。",
+          "You are an AI assistant, please analyze the git diff below and generate a standardized commit message.",
       },
-      { role: "user", content: `分析以下git diff并生成提交消息:\n\n${diff}` },
+      {
+        role: "user",
+        content: `Analyze the following git diff and generate a standardized commit message following the Conventional Commits specification.
+      The commit message should start with one of the following types:
+      - feat: A new feature
+      - fix: A bug fix
+      - docs: Documentation only changes
+      - style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+      - refactor: A code change that neither fixes a bug nor adds a feature
+      - perf: A code change that improves performance
+      - test: Adding missing tests or correcting existing tests
+      - chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+      
+      Example commit messages:
+      - feat: add new user authentication method
+      - fix: correct typo in README
+      - docs: update API documentation
+      
+      Please provide the commit message directly, without any markdown formatting or code block symbols.
+      
+      Here is the git diff:
+      ${diff}
+      
+      Commit message:`,
+      },
     ];
 
     try {
