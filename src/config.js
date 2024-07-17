@@ -62,18 +62,26 @@ function normalizeKey(key) {
 
 function getApiKey() {
   const provider = getAIProvider();
-  const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
-  return getConfigValue(apiKeyName);
+  const providerConfig = PROVIDER_CONFIGS[provider];
+  return providerConfig ? getConfigValue(providerConfig.apiKeyName) : null;
 }
 
 function getAIProvider() {
-  return getConfigValue("AI_PROVIDER") || DEFAULT_PROVIDER;
+  const provider = getConfigValue("AI_PROVIDER");
+  return provider && PROVIDER_CONFIGS[provider] ? provider : DEFAULT_PROVIDER;
 }
 
 function listConfig() {
   const config = getConfig();
   const provider = getAIProvider();
-  const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+  const providerConfig = PROVIDER_CONFIGS[provider];
+
+  if (!providerConfig) {
+    console.error(`Invalid AI provider: ${provider}`);
+    return {};
+  }
+
+  const apiKeyName = providerConfig.apiKeyName;
 
   return {
     [apiKeyName]: config[apiKeyName]

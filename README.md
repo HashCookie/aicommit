@@ -39,6 +39,8 @@ Set the key:
 
 ```sh
 aicommit config set DeepSeek_KEY=<your token>
+or
+aicommit config set Moonshot_KEY=<your token>
 ```
 
 In your git repository, run:
@@ -48,6 +50,12 @@ aicommit
 ```
 
 ## Reading a configuration value
+
+Get Full Configuration
+
+```sh
+aicommit config list
+```
 
 To get the configuration options, use this command:
 
