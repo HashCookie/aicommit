@@ -14,13 +14,50 @@ function getConfig() {
 
 function setConfig(key, value) {
   const config = getConfig();
-  config[key] = value;
+  const normalizedKey = normalizeKey(key);
+  config[normalizedKey] = value;
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
-function getApiKey() {
+function getConfigValue(key) {
   const config = getConfig();
-  return config.DeepSeek_KEY;
+  const normalizedKey = normalizeKey(key);
+  return config[normalizedKey];
 }
 
-module.exports = { getConfig, setConfig, getApiKey };
+function normalizeKey(key) {
+  const keyMap = {
+    deepseek_key: "DeepSeek_KEY",
+    model: "MODEL",
+  };
+  return keyMap[key.toLowerCase()] || key;
+}
+
+function getApiKey() {
+  return getConfigValue("DeepSeek_KEY");
+}
+
+function getModel() {
+  return getConfigValue("MODEL") || "deepseek-chat"; // 默认使用 "deepseek-chat"
+}
+
+function listConfig() {
+  const config = getConfig();
+  return {
+    DeepSeek_KEY: config.DeepSeek_KEY
+      ? `${config.DeepSeek_KEY.substr(0, 4)}...${config.DeepSeek_KEY.substr(
+          -4
+        )}`
+      : "Not set",
+    MODEL: config.MODEL || "deepseek-chat (default)",
+  };
+}
+
+module.exports = {
+  getConfig,
+  setConfig,
+  getApiKey,
+  getModel,
+  listConfig,
+  getConfigValue,
+};

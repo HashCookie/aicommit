@@ -2,7 +2,13 @@
 
 const fs = require("fs");
 const path = require("path");
-const { getApiKey, setConfig } = require("./config");
+const {
+  getApiKey,
+  setConfig,
+  getModel,
+  listConfig,
+  getConfigValue,
+} = require("./config");
 const {
   isGitRepository,
   checkStagedChanges,
@@ -23,20 +29,36 @@ if (args[0] === "--version") {
 }
 
 if (args[0] === "config") {
-  if (args[1] === "set" && args[2].startsWith("DeepSeek_KEY=")) {
-    const apiKey = args[2].split("=")[1];
-    setConfig("DeepSeek_KEY", apiKey);
-    console.log("API key has been set successfully.");
-    process.exit(0);
-  } else if (args[1] === "get" && args[2] === "DeepSeek_KEY") {
-    const apiKey = getApiKey();
-    if (apiKey) {
-      console.log(`DeepSeek_KEY: ${apiKey}`);
+  const command = args[1]?.toLowerCase();
+  const key = args[2]?.toLowerCase();
+
+  if (command === "set" && args[2]) {
+    const [configKey, configValue] = args[2].split("=");
+    if (configValue) {
+      setConfig(configKey, configValue);
+      console.log(`${configKey} has been set successfully.`);
     } else {
-      console.log("DeepSeek_KEY is not set.");
+      console.log(
+        "Invalid set command. Use format: aicommit config set KEY=VALUE"
+      );
     }
-    process.exit(0);
+  } else if (command === "get" && key) {
+    const value = getConfigValue(key);
+    if (value) {
+      console.log(`${key}: ${value}`);
+    } else {
+      console.log(`${key} is not set.`);
+    }
+  } else if (command === "list") {
+    const configs = listConfig();
+    console.log("Current configurations:");
+    Object.entries(configs).forEach(([key, value]) => {
+      console.log(`${key}: ${value}`);
+    });
+  } else {
+    console.log("Invalid config command. Available commands: set, get, list");
   }
+  process.exit(0);
 }
 
 if (args.length === 0) {

@@ -1,7 +1,7 @@
 const axios = require("axios");
 const inquirer = require("inquirer");
 const { exec } = require("child_process");
-const { getApiKey } = require("./config");
+const { getApiKey, getModel } = require("./config");
 
 const baseURL = "https://api.deepseek.com";
 const repoPath = process.cwd();
@@ -17,6 +17,8 @@ function generateCommitMessage(diff) {
   }
 
   const apiKey = getApiKey();
+  const model = getModel();
+
   const messages = [
     { role: "system", content: "You are a helpful assistant" },
     {
@@ -50,7 +52,7 @@ function generateCommitMessage(diff) {
     .post(
       `${baseURL}/chat/completions`,
       {
-        model: "deepseek-chat",
+        model: model,
         messages: messages,
         stream: false,
       },
