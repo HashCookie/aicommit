@@ -27,29 +27,33 @@ function getConfigValue(key) {
 
 function normalizeKey(key) {
   const keyMap = {
-    deepseek_key: "DeepSeek_KEY",
-    model: "MODEL",
+    api_key: "API_KEY",
+    ai_provider: "AI_PROVIDER",
+    ai_model: "AI_MODEL",
   };
   return keyMap[key.toLowerCase()] || key;
 }
 
 function getApiKey() {
-  return getConfigValue("DeepSeek_KEY");
+  return getConfigValue("API_KEY");
 }
 
-function getModel() {
-  return getConfigValue("MODEL") || "deepseek-chat"; // 默认使用 "deepseek-chat"
+function getAIProvider() {
+  return getConfigValue("AI_PROVIDER") || "deepseek";
+}
+
+function getAIModel() {
+  return getConfigValue("AI_MODEL") || "deepseek-chat";
 }
 
 function listConfig() {
   const config = getConfig();
   return {
-    DeepSeek_KEY: config.DeepSeek_KEY
-      ? `${config.DeepSeek_KEY.substr(0, 4)}...${config.DeepSeek_KEY.substr(
-          -4
-        )}`
-      : "Not set",
-    MODEL: config.MODEL || "deepseek-chat (default)",
+    API_KEY: config.API_KEY
+      ? `${config.API_KEY.substr(0, 4)}...${config.API_KEY.substr(-4)}`
+      : "未设置",
+    AI_PROVIDER: config.AI_PROVIDER || "deepseek (默认)",
+    AI_MODEL: config.AI_MODEL || "deepseek-chat (默认)",
   };
 }
 
@@ -57,7 +61,8 @@ module.exports = {
   getConfig,
   setConfig,
   getApiKey,
-  getModel,
+  getAIProvider,
+  getAIModel,
   listConfig,
   getConfigValue,
 };
