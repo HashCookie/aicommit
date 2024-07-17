@@ -14,6 +14,10 @@ const PROVIDER_CONFIGS = {
     defaultModel: "moonshot-v1-8k",
     apiKeyName: "MOONSHOT_KEY",
   },
+  deepbricks: {
+    defaultModel: "gpt-3.5-turbo",
+    apiKeyName: "DEEPBRICKS_KEY",
+  },
 };
 
 function getConfig() {

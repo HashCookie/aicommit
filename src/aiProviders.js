@@ -95,7 +95,20 @@ class MoonshotProvider extends AIProvider {
   }
 }
 
+class DeepbricksProvider extends AIProvider {
+  constructor(apiKey) {
+    super(apiKey, "https://api.deepbricks.ai/v1");
+  }
+
+  async generateCommitMessage(diff, model) {
+    const messages = this.getMessages(diff);
+    return await this.sendRequest(model, messages);
+  }
+}
+
 module.exports = {
   DeepSeekProvider,
   MoonshotProvider,
+  DeepbricksProvider,
+  DeepbricksProvider,
 };

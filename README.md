@@ -32,8 +32,19 @@ pnpm add -g unique-aicommit
 
 - [DeepSeek](https://www.deepseek.com/)
 - [Moonshot](https://platform.moonshot.cn/)
+- [Deepbricks](https://deepbricks.ai/)
 
 Get api key from 👆
+
+### Select AI model
+
+```sh
+aicommit config set AI_PROVIDER=deepseek
+or
+aicommit config set AI_PROVIDER=moonshot
+or
+aicommit config set AI_PROVIDER=deepbricks
+```
 
 Set the key:
 
@@ -41,6 +52,8 @@ Set the key:
 aicommit config set DeepSeek_KEY=<your token>
 or
 aicommit config set Moonshot_KEY=<your token>
+or
+aicommit config set Deepbricks_KEY=<your token>
 ```
 
 In your git repository, run:

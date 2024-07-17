@@ -1,7 +1,11 @@
 const inquirer = require("inquirer");
 const { exec } = require("child_process");
 const { getApiKey, getAIProvider, getAIModel } = require("./config");
-const { DeepSeekProvider, MoonshotProvider } = require("./aiProviders");
+const {
+  DeepSeekProvider,
+  MoonshotProvider,
+  DeepbricksProvider,
+} = require("./aiProviders");
 
 const repoPath = process.cwd();
 const MAX_DIFF_SIZE = 1000000; // 1MB
@@ -15,6 +19,8 @@ function getAIProviderInstance() {
       return new DeepSeekProvider(apiKey);
     case "moonshot":
       return new MoonshotProvider(apiKey);
+    case "deepbricks":
+      return new DeepbricksProvider(apiKey);
     default:
       throw new Error(`Unsupported AI providers: ${provider}`);
   }
