@@ -1,6 +1,6 @@
 {
   "name": "unique-aicommit",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "A tool to generate standardized commit messages using AI.",
   "main": "src/index.js",
   "bin": {
