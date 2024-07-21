@@ -34,35 +34,43 @@ function checkStagedChanges() {
 function executeDiff() {
   return new Promise((resolve, reject) => {
     exec(
-      `git -C ${repoPath} diff --staged --name-only`,
+      `git -C ${repoPath} diff --staged --name-status`,
       (error, stdout, stderr) => {
         if (error) {
           reject(error);
           return;
         }
 
-        const stagedFiles = stdout
+        const changes = stdout
+          .trim()
           .split("\n")
-          .filter((file) => file.trim() !== "");
-        const filteredFiles = stagedFiles.filter(
-          (file) => !ignoredFiles.some((ignored) => file.includes(ignored))
-        );
+          .map((line) => {
+            const [status, file] = line.split("\t");
+            return { status, file };
+          });
 
-        if (filteredFiles.length === 0) {
-          resolve("");
-          return;
-        }
-
-        const diffCommand = `git -C ${repoPath} diff --staged ${filteredFiles.join(
-          " "
-        )}`;
-        exec(diffCommand, (diffError, diffStdout, diffStderr) => {
-          if (diffError) {
-            reject(diffError);
+        const diffs = [];
+        const promises = changes.map(({ status, file }) => {
+          if (status === "D") {
+            return Promise.resolve(`Deleted: ${file}`);
           } else {
-            resolve(diffStdout);
+            return new Promise((resolve, reject) => {
+              exec(
+                `git -C ${repoPath} diff --staged ${file}`,
+                (err, diffOutput) => {
+                  if (err) reject(err);
+                  else resolve(diffOutput);
+                }
+              );
+            });
           }
         });
+
+        Promise.all(promises)
+          .then((results) => {
+            resolve(results.join("\n"));
+          })
+          .catch(reject);
       }
     );
   });

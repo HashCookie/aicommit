@@ -11,7 +11,7 @@ class AIProvider {
       {
         role: "system",
         content:
-          "You are an AI assistant, please analyze the git diff below and generate a standardized commit message.",
+          "You are an AI assistant, please analyze the git diff and file changes below and generate a standardized commit message.",
       },
       {
         role: "user",
