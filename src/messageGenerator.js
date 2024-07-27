@@ -51,34 +51,52 @@ function promptCommit(commitMessage) {
   inquirer
     .prompt([
       {
-        type: "confirm",
-        name: "confirmCommit",
-        message: `Generated commit messages:\n${commitMessage}\n\nDo you want to submit with this message?`,
-        default: false,
+        type: "list",
+        name: "action",
+        message: `Generated commit message:\n${commitMessage}\n\nWhat would you like to do?`,
+        choices: ["Accept", "Edit", "Cancel"],
       },
     ])
-    .then((answers) => {
-      if (answers.confirmCommit) {
-        exec(
-          `git -C ${repoPath} commit -m '${commitMessage}'`,
-          (error, stdout, stderr) => {
-            if (error) {
-              console.error(`git commit error: ${error}`);
-              console.error(`Stderr: ${stderr}`);
-              if (stderr.includes("nothing to commit")) {
-                console.log(
-                  "There are no changes to commit. Use 'git add' to temporarily store the file."
-                );
-              }
-              return;
-            }
-            console.log(stdout);
-          }
-        );
-      } else {
-        console.log("Submission has been canceled.");
+    .then((answer) => {
+      switch (answer.action) {
+        case "Accept":
+          executeCommit(commitMessage);
+          break;
+        case "Edit":
+          inquirer
+            .prompt([
+              {
+                type: "editor",
+                name: "editedMessage",
+                message: "Edit the commit message:",
+                default: commitMessage,
+              },
+            ])
+            .then((editAnswer) => {
+              executeCommit(editAnswer.editedMessage);
+            });
+          break;
+        case "Cancel":
+          console.log("Commit cancelled.");
+          break;
       }
     });
+}
+
+function executeCommit(message) {
+  exec(`git -C ${repoPath} commit -m '${message}'`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`git commit error: ${error}`);
+      console.error(`Stderr: ${stderr}`);
+      if (stderr.includes("nothing to commit")) {
+        console.log(
+          "There are no changes to commit. Use 'git add' to stage your changes."
+        );
+      }
+      return;
+    }
+    console.log(stdout);
+  });
 }
 
 module.exports = { generateCommitMessage, promptCommit };
