@@ -66,7 +66,7 @@ function promptCommit(commitMessage) {
           inquirer
             .prompt([
               {
-                type: "editor",
+                type: "input",
                 name: "editedMessage",
                 message: "Edit the commit message:",
                 default: commitMessage,
