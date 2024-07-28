@@ -1,7 +1,7 @@
 <h1 align="center">aicommit</h1>
 
 <p align="center">
-基于AI的自动生成commit消息,通过CLI提升工作流程。
+基于AI的自动生成commit信息,通过CLI提升工作流程。
 </p>
 
 ## 安装
