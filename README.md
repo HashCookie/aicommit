@@ -1,42 +1,26 @@
-<h1 align="center">UniqueAicommit</h1>
-
-[中文](README_ZH.md)
+<h1 align="center">aicommit</h1>
 
 <p align="center">
-AI-powered commit message generator for enhancing workflow via CLI.
+基于AI的自动生成commit消息,通过CLI提升工作流程。
 </p>
 
-## Installation
-
-### Using npm
+## 安装
 
 ```sh
 npm install -g unique-aicommit
 ```
 
-### Using yarn
+## 用法
 
-```sh
-yarn global add unique-aicommit
-```
-
-### Using pnpm
-
-```sh
-pnpm add -g unique-aicommit
-```
-
-## Usage
-
-### Supported Models:
+### 支持的 AI 模型：
 
 - [DeepSeek](https://www.deepseek.com/)
 - [Moonshot](https://platform.moonshot.cn/)
 - [Deepbricks](https://deepbricks.ai/)
 
-Get api key from 👆
+获取 API 密钥 👆
 
-### Select AI model
+### 选择 AI 模型
 
 ```sh
 aicommit config set AI_PROVIDER=deepseek
@@ -46,7 +30,7 @@ or
 aicommit config set AI_PROVIDER=deepbricks
 ```
 
-Set the key:
+设置 API：
 
 ```sh
 aicommit config set DeepSeek_KEY=<your token>
@@ -56,27 +40,27 @@ or
 aicommit config set Deepbricks_KEY=<your token>
 ```
 
-In your git repository, run:
+在你的 git 仓库中，运行：
 
 ```sh
 aicommit
 ```
 
-## Reading a configuration value
+## 获取配置值
 
-Get Full Configuration
+获取完整配置:
 
 ```sh
 aicommit config list
 ```
 
-To get the configuration options, use this command:
+要获取指定配置选项，请使用以下命令：
 
 ```sh
 aicommit config get <key>
 ```
 
-For example, to retrieve the API key, you can use:
+例如，要检索 API 密钥：
 
 ```sh
 aicommit config get DeepSeek_KEY
