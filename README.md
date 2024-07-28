@@ -6,6 +6,8 @@
 
 ## 安装
 
+前置:需要安装[Node](https://nodejs.org/)、[NPM](https://www.npmjs.com/)
+
 ```sh
 npm install -g unique-aicommit
 ```
@@ -45,6 +47,9 @@ aicommit config set Deepbricks_KEY=<your token>
 ```sh
 aicommit
 ```
+
+演示：
+
 
 ## 获取配置值
 
