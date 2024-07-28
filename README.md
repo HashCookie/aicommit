@@ -49,7 +49,7 @@ aicommit
 ```
 
 演示：
-
+![aicommit](public/aicommit.jpg)
 
 ## 获取配置值
 
