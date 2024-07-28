@@ -70,3 +70,4 @@ aicommit config get <key>
 ```sh
 aicommit config get DeepSeek_KEY
 ```
+参考 [aicommits](https://github.com/Nutlope/aicommits)
