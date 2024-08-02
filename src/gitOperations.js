@@ -54,12 +54,19 @@ function executeDiff() {
           if (status === "D") {
             return Promise.resolve(`Deleted: ${file}`);
           } else {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
               exec(
-                `git -C ${repoPath} diff --staged ${file}`,
+                `git -C ${repoPath} diff --staged -- "${file}"`,
                 (err, diffOutput) => {
-                  if (err) reject(err);
-                  else resolve(diffOutput);
+                  if (err) {
+                    console.warn(
+                      `Warning: Failed to get diff for ${file}:`,
+                      err.message
+                    );
+                    resolve(`Failed to get diff for ${file}`);
+                  } else {
+                    resolve(diffOutput);
+                  }
                 }
               );
             });
@@ -70,7 +77,10 @@ function executeDiff() {
           .then((results) => {
             resolve(results.join("\n"));
           })
-          .catch(reject);
+          .catch((error) => {
+            console.error("Error processing diffs:", error);
+            resolve("Failed to process all diffs");
+          });
       }
     );
   });
