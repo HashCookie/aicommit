@@ -6,7 +6,6 @@ const ignoredFiles = [
   "pnpm-lock.yaml",
   "package-lock.json",
   "yarn.lock",
-  "node_modules",
 ];
 
 function isGitRepository() {
@@ -47,8 +46,11 @@ function executeDiff() {
           .map((line) => {
             const [status, file] = line.split("\t");
             return { status, file };
-          });
-
+          })
+          .filter(
+            ({ file }) =>
+              !ignoredFiles.some((ignored) => file.includes(ignored))
+          );
         const diffs = [];
         const promises = changes.map(({ status, file }) => {
           if (status === "D") {
