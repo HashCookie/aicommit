@@ -84,7 +84,8 @@ function promptCommit(commitMessage) {
 }
 
 function executeCommit(message) {
-  exec(`git -C ${repoPath} commit -m '${message}'`, (error, stdout, stderr) => {
+  const cleanedMessage = message.replace(/^["']|["']$/g, '').replace(/'/g, "'\\''");
+  exec(`git -C ${repoPath} commit -m '${cleanedMessage}'`, (error, stdout, stderr) => {
     if (error) {
       console.error(`git commit error: ${error}`);
       console.error(`Stderr: ${stderr}`);
