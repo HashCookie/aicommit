@@ -96,6 +96,8 @@ function listConfig() {
   };
 }
 
+// TODO: Add support for additional AI providers in the future
+
 module.exports = {
   getConfig,
   setConfig,
