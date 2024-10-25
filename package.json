@@ -22,5 +22,12 @@
     "src/gitOperations.js",
     "src/messageGenerator.js",
     "src/aiProviders.js"
+  ],
+  "keywords": [
+    "AI",
+    "commit",
+    "git",
+    "automation",
+    "conventional-commits"
   ]
 }
