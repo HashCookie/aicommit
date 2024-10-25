@@ -110,5 +110,4 @@ module.exports = {
   DeepSeekProvider,
   MoonshotProvider,
   DeepbricksProvider,
-  DeepbricksProvider,
 };
