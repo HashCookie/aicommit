@@ -6,7 +6,6 @@ const {
   getApiKey,
   setConfig,
   getAIProvider,
-  getAIModel,
   listConfig,
   getConfigValue,
   PROVIDER_CONFIGS,
@@ -25,57 +24,63 @@ const VERSION = packageJson.version;
 
 const args = process.argv.slice(2);
 
-if (args[0] === "--version") {
-  console.log(`aicommit version ${VERSION}`);
-  process.exit(0);
+async function handleConfig(command, key) {
+  switch (command) {
+    case "set":
+      if (key) {
+        const [configKey, configValue] = key.split("=");
+        if (configValue) {
+          setConfig(configKey, configValue);
+          console.log(`${configKey} has been set up successfully.`);
+        } else {
+          console.log(
+            "Invalid set command. Use the format: aicommit config set key=value"
+          );
+        }
+      }
+      break;
+    case "get":
+      if (key) {
+        const value = getConfigValue(key);
+        console.log(value ? `${key}: ${value}` : `${key} Not set.`);
+      }
+      break;
+    case "list":
+      const configs = listConfig();
+      console.log("Current configuration:");
+      Object.entries(configs).forEach(([key, value]) => {
+        console.log(`${key}: ${value}`);
+      });
+      break;
+    default:
+      console.log("Invalid config command. Available commands: set, get, list");
+  }
 }
 
-if (args[0] === "config") {
-  const command = args[1]?.toLowerCase();
-  const key = args[2]?.toLowerCase();
+async function main() {
+  if (args[0] === "--version") {
+    console.log(`aicommit version ${VERSION}`);
+    return;
+  }
 
-  if (command === "set" && args[2]) {
-    const [configKey, configValue] = args[2].split("=");
-    if (configValue) {
-      setConfig(configKey, configValue);
-      console.log(`${configKey} has been set up successfully.`);
-    } else {
-      console.log(
-        "Invalid set command. Use the format: aicommit config set key=value"
+  if (args[0] === "config") {
+    await handleConfig(args[1]?.toLowerCase(), args[2]?.toLowerCase());
+    return;
+  }
+
+  if (args.length === 0) {
+    const provider = getAIProvider();
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+      console.error(
+        `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
       );
+      process.exit(1);
     }
-  } else if (command === "get" && key) {
-    const value = getConfigValue(key);
-    if (value) {
-      console.log(`${key}: ${value}`);
-    } else {
-      console.log(`${key} Not set.`);
-    }
-  } else if (command === "list") {
-    const configs = listConfig();
-    console.log("Current configuration:");
-    Object.entries(configs).forEach(([key, value]) => {
-      console.log(`${key}: ${value}`);
-    });
-  } else {
-    console.log("Invalid config command. Available commands: set, get, list");
-  }
-  process.exit(0);
-}
 
-if (args.length === 0) {
-  const provider = getAIProvider();
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
-    console.error(
-      `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
-    );
-    process.exit(1);
-  }
-
-  isGitRepository()
-    .then((isGitRepo) => {
+    try {
+      const isGitRepo = await isGitRepository();
       if (!isGitRepo) {
         console.log("Error: Current directory is not a Git repository.");
         console.log(
@@ -83,9 +88,8 @@ if (args.length === 0) {
         );
         process.exit(1);
       }
-      return checkStagedChanges();
-    })
-    .then((hasStaged) => {
+
+      const hasStaged = await checkStagedChanges();
       if (!hasStaged) {
         console.log(
           "Warning: No changes detected to commit. Please use 'git add' to stage your changes before committing."
@@ -93,21 +97,23 @@ if (args.length === 0) {
         console.log("After saving changes, run 'aicommit' again.");
         return;
       }
-      return executeDiff();
-    })
-    .then((diff) => {
+
+      const diff = await executeDiff();
       if (diff) {
-        return generateCommitMessage(diff);
+        const commitMessage = await generateCommitMessage(diff);
+        if (commitMessage) {
+          promptCommit(commitMessage);
+        } else {
+          console.log("Failed to generate a commit message. Please try again.");
+        }
       }
-    })
-    .then((commitMessage) => {
-      if (commitMessage) {
-        promptCommit(commitMessage);
-      } else {
-        console.log("Failed to generate a commit message. Please try again.");
-      }
-    })
-    .catch((error) => {
-      console.error("ERROR:", error);
-    });
+    } catch (error) {
+      console.error("ERROR:", error.message);
+    }
+  }
 }
+
+main().catch((error) => {
+  console.error("Unhandled error:", error);
+  process.exit(1);
+});
