@@ -31,61 +31,49 @@ function checkStagedChanges() {
   });
 }
 
-function executeDiff() {
-  return new Promise((resolve, reject) => {
-    exec(
-      `git -C ${repoPath} diff --staged --name-status`,
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(error);
-          return;
+async function executeDiff() {
+  try {
+    const stdout = await execPromise(`git -C ${repoPath} diff --staged --name-status`);
+    const changes = stdout
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const [status, file] = line.split("\t");
+        return { status, file };
+      })
+      .filter(({ file }) => !ignoredFiles.some((ignored) => file.includes(ignored)));
+
+    const diffs = await Promise.all(
+      changes.map(async ({ status, file }) => {
+        if (status === "D") {
+          return `Deleted: ${file}`;
         }
-
-        const changes = stdout
-          .trim()
-          .split("\n")
-          .map((line) => {
-            const [status, file] = line.split("\t");
-            return { status, file };
-          })
-          .filter(
-            ({ file }) =>
-              !ignoredFiles.some((ignored) => file.includes(ignored))
-          );
-        const diffs = [];
-        const promises = changes.map(({ status, file }) => {
-          if (status === "D") {
-            return Promise.resolve(`Deleted: ${file}`);
-          } else {
-            return new Promise((resolve) => {
-              exec(
-                `git -C ${repoPath} diff --staged -- "${file}"`,
-                (err, diffOutput) => {
-                  if (err) {
-                    console.warn(
-                      `Warning: Failed to get diff for ${file}:`,
-                      err.message
-                    );
-                    resolve(`Failed to get diff for ${file}`);
-                  } else {
-                    resolve(diffOutput);
-                  }
-                }
-              );
-            });
-          }
-        });
-
-        Promise.all(promises)
-          .then((results) => {
-            resolve(results.join("\n"));
-          })
-          .catch((error) => {
-            console.error("Error processing diffs:", error);
-            resolve("Failed to process all diffs");
-          });
-      }
+        try {
+          const diffOutput = await execPromise(`git -C ${repoPath} diff --staged -- "${file}"`);
+          return diffOutput;
+        } catch (err) {
+          console.warn(`Warning: Failed to get diff for ${file}:`, err.message);
+          return `Failed to get diff for ${file}`;
+        }
+      })
     );
+
+    return diffs.join("\n");
+  } catch (error) {
+    console.error("Error executing diff:", error);
+    throw error;
+  }
+}
+
+function execPromise(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout);
+      }
+    });
   });
 }
 
