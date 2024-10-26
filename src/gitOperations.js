@@ -6,6 +6,7 @@ const ignoredFiles = [
   "pnpm-lock.yaml",
   "package-lock.json",
   "yarn.lock",
+  "node_modules",
 ];
 
 function isGitRepository() {
