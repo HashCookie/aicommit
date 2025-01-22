@@ -15,7 +15,12 @@ const {
   checkStagedChanges,
   executeDiff,
 } = require("./gitOperations");
-const { generateCommitMessage, promptCommit, generateBranchName, promptBranchCreation } = require("./messageGenerator");
+const {
+  generateCommitMessage,
+  promptCommit,
+  generateBranchName,
+  promptBranchCreation,
+} = require("./messageGenerator");
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../package.json"), "utf8")
@@ -82,13 +87,15 @@ async function main() {
     try {
       const isGitRepo = await isGitRepository();
       if (!isGitRepo) {
-        console.log("错误: 当前目录不是 Git 仓库。");
+        console.log("Error: Current directory is not a Git repository.");
         process.exit(1);
       }
 
       const hasStaged = await checkStagedChanges();
       if (!hasStaged) {
-        console.log("警告: 没有检测到暂存的更改。请使用 'git add' 暂存您的更改。");
+        console.log(
+          "Warning: No staged changes detected. Please use 'git add' to stage your changes."
+        );
         return;
       }
 
@@ -98,11 +105,11 @@ async function main() {
         if (branchName) {
           promptBranchCreation(branchName);
         } else {
-          console.log("生成分支名失败。请重试。");
+          console.log("Failed to generate branch name. Please try again.");
         }
       }
     } catch (error) {
-      console.error("错误:", error.message);
+      console.error("Error:", error.message);
     }
     return;
   }
