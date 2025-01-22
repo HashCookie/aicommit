@@ -15,7 +15,7 @@ const {
   checkStagedChanges,
   executeDiff,
 } = require("./gitOperations");
-const { generateCommitMessage, promptCommit } = require("./messageGenerator");
+const { generateCommitMessage, promptCommit, generateBranchName, promptBranchCreation } = require("./messageGenerator");
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../package.json"), "utf8")
@@ -65,6 +65,45 @@ async function main() {
 
   if (args[0] === "config") {
     await handleConfig(args[1]?.toLowerCase(), args[2]?.toLowerCase());
+    return;
+  }
+
+  if (args[0] === "branch" || args[0] === "b") {
+    const provider = getAIProvider();
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+      console.error(
+        `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
+      );
+      process.exit(1);
+    }
+
+    try {
+      const isGitRepo = await isGitRepository();
+      if (!isGitRepo) {
+        console.log("错误: 当前目录不是 Git 仓库。");
+        process.exit(1);
+      }
+
+      const hasStaged = await checkStagedChanges();
+      if (!hasStaged) {
+        console.log("警告: 没有检测到暂存的更改。请使用 'git add' 暂存您的更改。");
+        return;
+      }
+
+      const diff = await executeDiff();
+      if (diff) {
+        const branchName = await generateBranchName(diff);
+        if (branchName) {
+          promptBranchCreation(branchName);
+        } else {
+          console.log("生成分支名失败。请重试。");
+        }
+      }
+    } catch (error) {
+      console.error("错误:", error.message);
+    }
     return;
   }
 

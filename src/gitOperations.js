@@ -33,7 +33,9 @@ function checkStagedChanges() {
 
 async function executeDiff() {
   try {
-    const stdout = await execPromise(`git -C ${repoPath} diff --staged --name-status`);
+    const stdout = await execPromise(
+      `git -C ${repoPath} diff --staged --name-status`
+    );
     const changes = stdout
       .trim()
       .split("\n")
@@ -41,7 +43,9 @@ async function executeDiff() {
         const [status, file] = line.split("\t");
         return { status, file };
       })
-      .filter(({ file }) => !ignoredFiles.some((ignored) => file.includes(ignored)));
+      .filter(
+        ({ file }) => !ignoredFiles.some((ignored) => file.includes(ignored))
+      );
 
     const diffs = await Promise.all(
       changes.map(async ({ status, file }) => {
@@ -49,7 +53,9 @@ async function executeDiff() {
           return `Deleted: ${file}`;
         }
         try {
-          const diffOutput = await execPromise(`git -C ${repoPath} diff --staged -- "${file}"`);
+          const diffOutput = await execPromise(
+            `git -C ${repoPath} diff --staged -- "${file}"`
+          );
           return diffOutput;
         } catch (err) {
           console.warn(`Warning: Failed to get diff for ${file}:`, err.message);
@@ -77,4 +83,24 @@ function execPromise(command) {
   });
 }
 
-module.exports = { isGitRepository, checkStagedChanges, executeDiff };
+async function createAndCheckoutBranch(branchName) {
+  return new Promise((resolve, reject) => {
+    exec(
+      `git -C ${repoPath} checkout -b ${branchName}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stdout);
+        }
+      }
+    );
+  });
+}
+
+module.exports = {
+  isGitRepository,
+  checkStagedChanges,
+  executeDiff,
+  createAndCheckoutBranch,
+};

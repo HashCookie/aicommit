@@ -6,6 +6,7 @@ const {
   MoonshotProvider,
   DeepbricksProvider,
 } = require("./aiProviders");
+const { createAndCheckoutBranch } = require("./gitOperations");
 
 const repoPath = process.cwd();
 const MAX_DIFF_SIZE = 1000000; // 1MB
@@ -100,4 +101,81 @@ function executeCommit(message) {
   });
 }
 
-module.exports = { generateCommitMessage, promptCommit };
+async function generateBranchName(diff) {
+  if (diff.length > MAX_DIFF_SIZE) {
+    console.warn("Diff is too large. Only the first 1MB will be used to generate the branch name.");
+    diff = diff.substring(0, MAX_DIFF_SIZE);
+  }
+
+  const aiProvider = getAIProviderInstance();
+  const model = getAIModel();
+
+  try {
+    return await aiProvider.generateBranchName(diff, model);
+  } catch (error) {
+    console.error("Error generating branch name.", error);
+    return null;
+  }
+}
+
+function promptBranchCreation(branchName) {
+  inquirer
+    .prompt([
+      {
+        type: 'list',
+        name: 'prefix',
+        message: '选择分支类型:',
+        choices: ['feat:', 'fix:', 'docs:', 'chore:', 'refactor:', '不需要前缀'],
+      },
+      {
+        type: 'list',
+        name: 'action',
+        message: `生成的分支名:\n${branchName}\n\n您想要?`,
+        choices: ['接受', '编辑', '取消'],
+      },
+    ])
+    .then(async (answers) => {
+      const prefix = answers.prefix === '不需要前缀' ? '' : `${answers.prefix} `;
+      const fullBranchName = `${prefix}${branchName}`;
+
+      switch (answers.action) {
+        case '接受':
+          try {
+            await createAndCheckoutBranch(fullBranchName);
+            console.log(`已成功创建并切换到分支: ${fullBranchName}`);
+          } catch (error) {
+            console.error('创建分支失败:', error.message);
+          }
+          break;
+        case '编辑':
+          inquirer
+            .prompt([
+              {
+                type: 'input',
+                name: 'editedName',
+                message: '编辑分支名:',
+                default: fullBranchName,
+              },
+            ])
+            .then(async (editAnswer) => {
+              try {
+                await createAndCheckoutBranch(editAnswer.editedName);
+                console.log(`已成功创建并切换到分支: ${editAnswer.editedName}`);
+              } catch (error) {
+                console.error('创建分支失败:', error.message);
+              }
+            });
+          break;
+        case '取消':
+          console.log('已取消创建分支。');
+          break;
+      }
+    });
+}
+
+module.exports = { 
+  generateCommitMessage, 
+  promptCommit,
+  generateBranchName,
+  promptBranchCreation 
+};

@@ -6,12 +6,16 @@ class AIProvider {
     this.baseURL = baseURL;
   }
 
-  getMessages(diff) {
+  getMessages(diff, type = 'commit') {
+    const prompts = {
+      commit: "You are a commit message generator. Generate a concise commit message following the Conventional Commits specification. Only output the commit message in format 'type: description' without any additional explanation.",
+      branch: "You are a branch name generator. Generate a very concise description (max 5 words) that summarizes the changes. Only output the description without any prefix or additional explanation. The output should only contain lowercase letters, numbers and hyphens."
+    };
+    
     return [
       {
         role: "system",
-        content:
-          "You are a commit message generator. Generate a concise commit message following the Conventional Commits specification. Only output the commit message in format 'type: description' without any additional explanation.",
+        content: prompts[type]
       },
       {
         role: "user",
@@ -49,6 +53,21 @@ class AIProvider {
 
   async generateCommitMessage(diff, model) {
     throw new Error("Method not implemented");
+  }
+
+  async generateBranchName(diff, model) {
+    const messages = this.getMessages(diff, 'branch');
+    const description = await this.sendRequest(model, messages);
+    return this.formatBranchName(description);
+  }
+
+  formatBranchName(description) {
+    return description
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .substring(0, 50);
   }
 }
 
