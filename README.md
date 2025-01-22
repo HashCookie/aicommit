@@ -42,6 +42,8 @@ or
 aicommit config set Deepbricks_KEY=<your token>
 ```
 
+### 生成 Commit 信息
+
 在你的 git 仓库中，运行：
 
 ```sh
@@ -50,6 +52,22 @@ aicommit
 
 演示：
 ![aicommit](public/aicommit.jpg)
+
+### 生成分支名称
+
+基于暂存区的更改自动生成分支名：
+
+```sh
+aicommit branch
+# or
+aicommit b
+```
+
+分支生成功能支持：
+- 自动分析暂存区内容生成语义化分支名
+- 支持常用分支类型前缀（feat:、fix:、docs: 等）
+- 可以编辑或取消生成的分支名
+- 自动创建并切换到新分支
 
 ## 获取配置值
 
