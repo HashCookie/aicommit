@@ -3,6 +3,7 @@
   "version": "1.0.30",
   "description": "A tool to generate standardized commit messages using AI.",
   "main": "src/index.js",
+  "type": "module",
   "bin": {
     "aicommit": "./src/index.js"
   },

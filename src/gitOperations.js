@@ -1,4 +1,4 @@
-const { exec } = require("child_process");
+import { exec } from "child_process";
 
 const repoPath = process.cwd();
 
@@ -104,7 +104,7 @@ async function createAndCheckoutBranch(branchName) {
   });
 }
 
-module.exports = {
+export {
   isGitRepository,
   checkStagedChanges,
   executeDiff,

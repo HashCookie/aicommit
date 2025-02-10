@@ -1,12 +1,12 @@
-const inquirer = require("inquirer");
-const { exec } = require("child_process");
-const { getApiKey, getAIProvider, getAIModel } = require("./config");
-const {
+import inquirer from "inquirer";
+import { exec } from "child_process";
+import { getApiKey, getAIProvider, getAIModel } from "./config.js";
+import {
   DeepSeekProvider,
   MoonshotProvider,
   DeepbricksProvider,
-} = require("./aiProviders");
-const { createAndCheckoutBranch } = require("./gitOperations");
+} from "./aiProviders.js";
+import { createAndCheckoutBranch } from "./gitOperations.js";
 
 const repoPath = process.cwd();
 const MAX_DIFF_SIZE = 1000000; // 1MB

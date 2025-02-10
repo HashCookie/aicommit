@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
+import fs from "fs";
+import path from "path";
+import os from "os";
 
 const CONFIG_FILE = path.join(os.homedir(), ".aicommitrc");
 
@@ -103,7 +103,7 @@ function listConfig() {
 
 // TODO: Add support for additional AI providers in the future
 
-module.exports = {
+export {
   getConfig,
   setConfig,
   getApiKey,

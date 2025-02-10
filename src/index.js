@@ -1,26 +1,26 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const {
+import fs from "fs";
+import path from "path";
+import {
   getApiKey,
   setConfig,
   getAIProvider,
   listConfig,
   getConfigValue,
   PROVIDER_CONFIGS,
-} = require("./config");
-const {
+} from "./config.js";
+import {
   isGitRepository,
   checkStagedChanges,
   executeDiff,
-} = require("./gitOperations");
-const {
+} from "./gitOperations.js";
+import {
   generateCommitMessage,
   promptCommit,
   generateBranchName,
   promptBranchCreation,
-} = require("./messageGenerator");
+} from "./messageGenerator.js";
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../package.json"), "utf8")
