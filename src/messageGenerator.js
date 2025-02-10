@@ -131,7 +131,7 @@ function promptBranchCreation(branchName) {
           "docs:",
           "chore:",
           "refactor:",
-          "不需要前缀",
+          "no prefix needed",
         ],
       },
       {
