@@ -126,11 +126,11 @@ function promptBranchCreation(branchName) {
         name: "prefix",
         message: "Select branch type.",
         choices: [
-          "feat:",
-          "fix:",
-          "docs:",
-          "chore:",
-          "refactor:",
+          "feat",
+          "fix",
+          "docs",
+          "chore",
+          "refactor",
           "no prefix needed",
         ],
       },
@@ -143,7 +143,7 @@ function promptBranchCreation(branchName) {
     ])
     .then(async (answers) => {
       const prefix =
-        answers.prefix === "No prefix needed" ? "" : `${answers.prefix} `;
+        answers.prefix === "no prefix needed" ? "" : `${answers.prefix}-`;
       const fullBranchName = `${prefix}${branchName}`;
 
       switch (answers.action) {
