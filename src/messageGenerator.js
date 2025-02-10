@@ -183,7 +183,7 @@ function promptBranchCreation(branchName) {
     });
 }
 
-module.exports = {
+export {
   generateCommitMessage,
   promptCommit,
   generateBranchName,
