@@ -27,10 +27,10 @@ function getAIProviderInstance() {
   }
 }
 
-async function generateCommitMessage(diff) {
+async function generateMessage(diff, type) {
   if (diff.length > MAX_DIFF_SIZE) {
     console.warn(
-      "Diff is too large. Only the first 1MB will be used to generate the commit message."
+      `Diff is too large. Only the first 1MB will be used to generate the ${type} message.`
     );
     diff = diff.substring(0, MAX_DIFF_SIZE);
   }
@@ -39,11 +39,23 @@ async function generateCommitMessage(diff) {
   const model = getAIModel();
 
   try {
-    return await aiProvider.generateCommitMessage(diff, model);
+    if (type === "commit") {
+      return await aiProvider.generateCommitMessage(diff, model);
+    } else if (type === "branch") {
+      return await aiProvider.generateBranchName(diff, model);
+    }
   } catch (error) {
-    console.error("Error generating commit message.", error);
+    console.error(`Error generating ${type} message.`, error);
     return null;
   }
+}
+
+async function generateCommitMessage(diff) {
+  return await generateMessage(diff, "commit");
+}
+
+async function generateBranchName(diff) {
+  return await generateMessage(diff, "branch");
 }
 
 function promptCommit(commitMessage) {
@@ -104,25 +116,6 @@ function executeCommit(message) {
       console.log(stdout);
     }
   );
-}
-
-async function generateBranchName(diff) {
-  if (diff.length > MAX_DIFF_SIZE) {
-    console.warn(
-      "Diff is too large. Only the first 1MB will be used to generate the branch name."
-    );
-    diff = diff.substring(0, MAX_DIFF_SIZE);
-  }
-
-  const aiProvider = getAIProviderInstance();
-  const model = getAIModel();
-
-  try {
-    return await aiProvider.generateBranchName(diff, model);
-  } catch (error) {
-    console.error("Error generating branch name.", error);
-    return null;
-  }
 }
 
 function promptBranchCreation(branchName) {
