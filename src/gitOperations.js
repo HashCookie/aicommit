@@ -2,12 +2,7 @@ const { exec } = require("child_process");
 
 const repoPath = process.cwd();
 
-const ignoredFiles = [
-  "pnpm-lock.yaml",
-  "package-lock.json",
-  "yarn.lock",
-  "node_modules",
-];
+const ignoredFiles = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"];
 
 function isGitRepository() {
   return new Promise((resolve) => {
@@ -36,31 +31,14 @@ async function executeDiff() {
     const stdout = await execPromise(
       `git -C ${repoPath} diff --staged --name-status`
     );
-    const changes = stdout
-      .trim()
-      .split("\n")
-      .map((line) => {
-        const [status, file] = line.split("\t");
-        return { status, file };
-      })
-      .filter(
-        ({ file }) => !ignoredFiles.some((ignored) => file.includes(ignored))
-      );
+    const changes = parseGitDiff(stdout);
 
     const diffs = await Promise.all(
       changes.map(async ({ status, file }) => {
         if (status === "D") {
           return `Deleted: ${file}`;
         }
-        try {
-          const diffOutput = await execPromise(
-            `git -C ${repoPath} diff --staged -- "${file}"`
-          );
-          return diffOutput;
-        } catch (err) {
-          console.warn(`Warning: Failed to get diff for ${file}:`, err.message);
-          return `Failed to get diff for ${file}`;
-        }
+        return await getFileDiff(file);
       })
     );
 
@@ -71,10 +49,37 @@ async function executeDiff() {
   }
 }
 
+function parseGitDiff(stdout) {
+  return stdout
+    .trim()
+    .split("\n")
+    .map((line) => {
+      const [status, file] = line.split("\t");
+      return { status, file };
+    })
+    .filter(
+      ({ file }) => !ignoredFiles.some((ignored) => file.includes(ignored))
+    );
+}
+
+async function getFileDiff(file) {
+  try {
+    const diffOutput = await execPromise(
+      `git -C ${repoPath} diff --staged -- "${file}"`
+    );
+    return diffOutput;
+  } catch (err) {
+    console.warn(`Warning: Failed to get diff for ${file}:`, err.message);
+    return `Failed to get diff for ${file}`;
+  }
+}
+
 function execPromise(command) {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
+        console.error(`Command failed: ${command}`);
+        console.error(`Error: ${stderr}`);
         reject(error);
       } else {
         resolve(stdout);
@@ -89,6 +94,7 @@ async function createAndCheckoutBranch(branchName) {
       `git -C ${repoPath} checkout -b ${branchName}`,
       (error, stdout, stderr) => {
         if (error) {
+          console.error(`Failed to create branch: ${stderr}`);
           reject(error);
         } else {
           resolve(stdout);
