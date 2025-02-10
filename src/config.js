@@ -24,6 +24,7 @@ function getConfig() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
   } catch (error) {
+    console.error(`Error reading config file: ${error.message}`);
     return {};
   }
 }
@@ -41,7 +42,11 @@ function setConfig(key, value) {
     }
   }
 
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  } catch (error) {
+    console.error(`Error writing config file: ${error.message}`);
+  }
 }
 
 function getAIModel() {
