@@ -62,6 +62,38 @@ async function handleConfig(command, key) {
   }
 }
 
+async function checkApiKeyAndRepo() {
+  const provider = getAIProvider();
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+    console.error(
+      `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
+    );
+    process.exit(1);
+  }
+
+  const isGitRepo = await isGitRepository();
+  if (!isGitRepo) {
+    console.log("Error: Current directory is not a Git repository.");
+    console.log(
+      "Please run 'aicommit' in the Git repository, or use 'git init' to initialize a repository."
+    );
+    process.exit(1);
+  }
+
+  const hasStaged = await checkStagedChanges();
+  if (!hasStaged) {
+    console.log(
+      "Warning: No changes detected to commit. Please use 'git add' to stage your changes before committing."
+    );
+    console.log("After saving changes, run 'aicommit' again.");
+    return false;
+  }
+
+  return true;
+}
+
 async function main() {
   if (args[0] === "--version") {
     console.log(`aicommit version ${VERSION}`);
@@ -74,87 +106,41 @@ async function main() {
   }
 
   if (args[0] === "branch" || args[0] === "b") {
-    const provider = getAIProvider();
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
-      console.error(
-        `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
-      );
-      process.exit(1);
-    }
-
-    try {
-      const isGitRepo = await isGitRepository();
-      if (!isGitRepo) {
-        console.log("Error: Current directory is not a Git repository.");
-        process.exit(1);
-      }
-
-      const hasStaged = await checkStagedChanges();
-      if (!hasStaged) {
-        console.log(
-          "Warning: No staged changes detected. Please use 'git add' to stage your changes."
-        );
-        return;
-      }
-
-      const diff = await executeDiff();
-      if (diff) {
-        const branchName = await generateBranchName(diff);
-        if (branchName) {
-          promptBranchCreation(branchName);
-        } else {
-          console.log("Failed to generate branch name. Please try again.");
+    if (await checkApiKeyAndRepo()) {
+      try {
+        const diff = await executeDiff();
+        if (diff) {
+          const branchName = await generateBranchName(diff);
+          if (branchName) {
+            promptBranchCreation(branchName);
+          } else {
+            console.log("Failed to generate branch name. Please try again.");
+          }
         }
+      } catch (error) {
+        console.error("Error:", error.message);
       }
-    } catch (error) {
-      console.error("Error:", error.message);
     }
     return;
   }
 
   if (args.length === 0) {
-    const provider = getAIProvider();
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
-      console.error(
-        `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
-      );
-      process.exit(1);
-    }
-
-    try {
-      const isGitRepo = await isGitRepository();
-      if (!isGitRepo) {
-        console.log("Error: Current directory is not a Git repository.");
-        console.log(
-          "Please run 'aicommit' in the Git repository, or use 'git init' to initialize a repository."
-        );
-        process.exit(1);
-      }
-
-      const hasStaged = await checkStagedChanges();
-      if (!hasStaged) {
-        console.log(
-          "Warning: No changes detected to commit. Please use 'git add' to stage your changes before committing."
-        );
-        console.log("After saving changes, run 'aicommit' again.");
-        return;
-      }
-
-      const diff = await executeDiff();
-      if (diff) {
-        const commitMessage = await generateCommitMessage(diff);
-        if (commitMessage) {
-          promptCommit(commitMessage);
-        } else {
-          console.log("Failed to generate a commit message. Please try again.");
+    if (await checkApiKeyAndRepo()) {
+      try {
+        const diff = await executeDiff();
+        if (diff) {
+          const commitMessage = await generateCommitMessage(diff);
+          if (commitMessage) {
+            promptCommit(commitMessage);
+          } else {
+            console.log(
+              "Failed to generate a commit message. Please try again."
+            );
+          }
         }
+      } catch (error) {
+        console.error("ERROR:", error.message);
       }
-    } catch (error) {
-      console.error("ERROR:", error.message);
     }
   }
 }
