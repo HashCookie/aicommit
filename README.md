@@ -1,96 +1,113 @@
-<h1 align="center">aicommit</h1>
+<div align="center">
+  <h1>aicommit</h1>
+  <p>A lightweight CLI that generates Conventional Commits messages and branch names from staged git diffs using AI.</p>
+  <p>
+    <a href="https://www.npmjs.com/package/unique-aicommit"><img src="https://img.shields.io/npm/v/unique-aicommit" alt="npm version" /></a>
+    <a href="https://www.npmjs.com/package/unique-aicommit"><img src="https://img.shields.io/npm/dt/unique-aicommit" alt="npm downloads" /></a>
+    <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="node >= 18" />
+  </p>
+  <p><strong>English</strong> | <a href="./README.zh-CN.md">简体中文</a></p>
+</div>
 
-<p align="center">
-基于 AI 自动生成 Conventional Commits 提交信息与分支名的 CLI 工具。
-</p>
+<div align="center">
+  <img src="public/aicommit.jpg" alt="aicommit demo" width="720" />
+</div>
 
-## 安装
+## Quick Start
 
-需要 Node.js >= 18。
+Requires Node.js >= 18.
 
 ```sh
+# 1. Install globally
 npm install -g unique-aicommit
+
+# 2. Configure a provider and API key (or use environment variables)
+aicommit config set AI_PROVIDER=deepseek
+aicommit config set DEEPSEEK_KEY=<your_api_key>
+
+# 3. Stage your changes and generate a commit message
+git add .
+aicommit
 ```
 
-## 配置
+## Usage
 
-内置支持的 Provider（配置项未设时自动兜底读取对应环境变量）：
-
-| Provider | 默认模型 | 配置项 | 环境变量兜底 |
-|----------|----------|--------|--------------|
-| `deepseek` | `deepseek-chat` | `DEEPSEEK_KEY` | `DEEPSEEK_API_KEY` |
-| `moonshot` | `moonshot-v1-8k` | `MOONSHOT_KEY` | `MOONSHOT_API_KEY` |
-| `siliconflow` | `Qwen/Qwen2.5-7B-Instruct` | `SILICONFLOW_KEY` | `SILICONFLOW_API_KEY` |
-| `openai` | `gpt-4o-mini` | `OPENAI_KEY` | `OPENAI_API_KEY` |
-| `openrouter` | `openai/gpt-4o-mini` | `OPENROUTER_KEY` | `OPENROUTER_API_KEY` |
-| `gemini` | `gemini-2.0-flash` | `GEMINI_KEY` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` |
-| `groq` | `llama-3.3-70b-versatile` | `GROQ_KEY` | `GROQ_API_KEY` |
-| `anthropic` | `claude-3-5-haiku-latest` | `ANTHROPIC_KEY` | `ANTHROPIC_API_KEY` |
-| `ollama` | `llama3.2` | 无需 API Key | - |
-
-选择 Provider 并设置 API Key：
+### Generate a commit message
 
 ```sh
-aicommit config set AI_PROVIDER=siliconflow
-aicommit config set SILICONFLOW_KEY=<your_token>
+git add <files...>
+aicommit
 ```
 
-使用本地 Ollama（无需 Key）：
+Interactive actions:
+- **Accept** — commit directly with the generated message
+- **Edit** — modify the message before committing
+- **Regenerate** — request a new suggestion
+- **Cancel** — abort
+
+### Generate and checkout a branch
+
+```sh
+aicommit branch
+# shorthand
+aicommit b
+```
+
+Pick a prefix (`feat`, `fix`, `docs`, `chore`, `refactor`, or `none`), preview the full branch name, and confirm to run `git checkout -b`.
+
+## Supported Providers
+
+If an API key is not set in `~/.aicommitrc`, `aicommit` falls back to the corresponding environment variable. If `AI_PROVIDER` is unset, it auto-detects the first provider with a configured key.
+
+| Provider | Default Model | Config Key | Env Fallback | Get Key |
+|----------|---------------|------------|--------------|---------|
+| `deepseek` | `deepseek-chat` | `DEEPSEEK_KEY` | `DEEPSEEK_API_KEY` | [DeepSeek](https://platform.deepseek.com/) |
+| `moonshot` | `moonshot-v1-8k` | `MOONSHOT_KEY` | `MOONSHOT_API_KEY` | [Moonshot](https://platform.moonshot.cn/) |
+| `siliconflow` | `Qwen/Qwen2.5-7B-Instruct` | `SILICONFLOW_KEY` | `SILICONFLOW_API_KEY` | [SiliconFlow](https://cloud.siliconflow.cn/) |
+| `openai` | `gpt-4o-mini` | `OPENAI_KEY` | `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/api-keys) |
+| `openrouter` | `openai/gpt-4o-mini` | `OPENROUTER_KEY` | `OPENROUTER_API_KEY` | [OpenRouter](https://openrouter.ai/keys) |
+| `gemini` | `gemini-2.0-flash` | `GEMINI_KEY` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `groq` | `llama-3.3-70b-versatile` | `GROQ_KEY` | `GROQ_API_KEY` | [Groq](https://console.groq.com/keys) |
+| `anthropic` | `claude-3-5-haiku-latest` | `ANTHROPIC_KEY` | `ANTHROPIC_API_KEY` | [Anthropic](https://console.anthropic.com/settings/keys) |
+| `ollama` | `llama3.2` | Not required | - | [Ollama](https://ollama.com/) |
+
+### Local models with Ollama (no API key required)
 
 ```sh
 aicommit config set AI_PROVIDER=ollama
 aicommit config set AI_MODEL=llama3.2
 ```
 
-可选配置：
+### Custom OpenAI-compatible endpoints (OneAPI, LM Studio, proxies)
 
 ```sh
-# 自定义模型
-aicommit config set AI_MODEL=deepseek-ai/DeepSeek-V3
-
-# 接入任意 OpenAI 兼容接口（如 OneAPI、LM Studio、公司代理）
 aicommit config set AI_BASE_URL=https://api.example.com/v1
-
-# 自定义传给模型的最大 diff 字符数（默认 32000）
-aicommit config set MAX_DIFF_CHARS=24000
+aicommit config set AI_MODEL=<model_name>
 ```
 
-查看或删除配置：
+## Configuration
+
+Settings are stored in `~/.aicommitrc` with `0600` file permissions.
 
 ```sh
-aicommit config list
-aicommit config get SILICONFLOW_KEY
-aicommit config unset AI_BASE_URL
+aicommit config list                     # Show active configuration (keys are masked)
+aicommit config get <key>                # Read a single config value
+aicommit config set <key>=<value>        # Set a config value
+aicommit config unset <key>              # Remove a config value
 ```
 
-## 用法
+Common options:
+- `AI_PROVIDER` — active provider (automatically resets `AI_MODEL` to that provider's default)
+- `AI_MODEL` — override the default model
+- `AI_BASE_URL` — override the default API base URL
+- `MAX_DIFF_CHARS` — maximum diff characters sent to the model (default: `32000`)
 
-### 生成 Commit 信息
-
-先 `git add` 暂存更改，然后运行：
-
-```sh
-aicommit
-```
-
-支持 `Accept` / `Edit` / `Regenerate` / `Cancel`。
-
-![aicommit](public/aicommit.jpg)
-
-### 生成分支名
-
-基于暂存区更改生成分支名并自动切换：
-
-```sh
-aicommit branch
-# 或
-aicommit b
-```
-
-## 开发与测试
+## Development
 
 ```sh
 npm test
 ```
 
-参考 [aicommits](https://github.com/Nutlope/aicommits)
+## License
+
+ISC · Inspired by [aicommits](https://github.com/Nutlope/aicommits)
