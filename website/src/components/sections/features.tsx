@@ -8,28 +8,33 @@ export function Features() {
     <Section id="features" title="Features">
       <div className="border-x border-t">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {services.map(({ name, description, icon: Icon }, index) => (
+          {services.map(({ name, description, icon: Icon }) => (
             <div
               key={name}
               className={cn(
-                "flex flex-col gap-y-3 items-center justify-center py-9 px-6 border-b transition-colors hover:bg-muted/30",
+                "flex flex-col gap-y-2 items-center justify-center py-8 px-4 border-b transition-colors hover:bg-secondary/20",
                 "last:border-b-0",
                 "md:[&:nth-child(2n+1)]:border-r md:[&:nth-child(n+5)]:border-b-0",
-                "lg:[&:nth-child(3n)]:border-r-0 lg:[&:nth-child(n+4)]:border-b-0 lg:border-r",
-                index === services.length - 1 ? "border-b-0" : ""
+                "lg:[&:nth-child(3n)]:border-r-0 lg:[&:nth-child(n+4)]:border-b-0 lg:border-r"
               )}
             >
-              <div className="flex flex-col gap-y-3 items-center">
-                <div className="border bg-muted/70 p-2.5 rounded-lg text-foreground">
+              <div className="flex flex-col gap-y-2 items-center">
+                <div className="bg-gradient-to-b from-primary to-primary/80 p-2 rounded-lg text-primary-foreground transition-colors">
                   {Icon}
                 </div>
-                <h2 className="text-lg font-semibold text-foreground text-center text-balance">
+                <h2 className="text-xl font-medium text-card-foreground text-center text-balance">
                   {name}
                 </h2>
               </div>
-              <p className="text-sm text-muted-foreground text-balance text-center max-w-xs mx-auto leading-relaxed">
+              <p className="text-sm text-muted-foreground text-balance text-center max-w-md mx-auto">
                 {description}
               </p>
+              <a
+                href="#examples"
+                className="text-sm text-primary hover:underline underline-offset-4 transition-colors hover:text-secondary-foreground"
+              >
+                Learn more &gt;
+              </a>
             </div>
           ))}
         </div>

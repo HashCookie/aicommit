@@ -14,7 +14,7 @@ const featureOptions: FeatureOption[] = [
     id: 1,
     title: "Interactive Commit",
     description:
-      "Stage your changes and let AI draft a Conventional Commit message. Accept, edit, or regenerate.",
+      "Stage your changes and let AI draft a Conventional Commit message.",
     code: `# Stage files and generate a commit message
 git add .
 aicommit
@@ -32,7 +32,7 @@ aicommit
     id: 2,
     title: "One-Line Auto Commit",
     description:
-      "Stage tracked files, pass extra context to the AI, and commit immediately without prompts.",
+      "Auto-stage tracked files, pass context, and commit without prompts.",
     code: `# Auto-stage tracked files (-a), add context (-c), and skip confirmation (-y)
 aicommit -a -y -c "fix Safari date parsing compatibility"
 
@@ -44,7 +44,7 @@ aicommit -a -y -c "fix Safari date parsing compatibility"
     id: 3,
     title: "Branch Name Generator",
     description:
-      "Generate a clean branch slug from your diff, pick a prefix, and switch to it automatically.",
+      "Generate a clean branch slug from your diff and checkout automatically.",
     code: `# Generate and checkout a semantic branch
 aicommit branch
 # or shorthand: aicommit b
@@ -59,7 +59,7 @@ aicommit branch
     id: 4,
     title: "Interactive Setup & Ollama",
     description:
-      "Configure provider, key, model, and language in seconds — or run fully offline with Ollama.",
+      "Configure provider, key, and language — or run offline with Ollama.",
     code: `# Guided setup wizard
 aicommit setup
 
@@ -84,7 +84,7 @@ export async function Examples() {
   );
 
   return (
-    <Section id="examples" title="Examples">
+    <Section id="examples">
       <div className="border-x border-t">
         <FeatureSelector features={features} />
       </div>

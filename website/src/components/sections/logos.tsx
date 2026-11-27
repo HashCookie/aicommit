@@ -1,75 +1,80 @@
 "use client";
 
 import { Section } from "@/components/section";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
-const providers = [
-  { name: "DeepSeek", model: "deepseek-chat", icon: "deepseek", colored: true },
-  { name: "OpenAI", model: "gpt-4o-mini", icon: "openai", colored: false },
-  {
-    name: "Anthropic",
-    model: "claude-3.5-haiku",
-    icon: "anthropic",
-    colored: false,
-  },
-  { name: "Gemini", model: "gemini-2.0-flash", icon: "gemini", colored: true },
-  {
-    name: "OpenRouter",
-    model: "multi-model",
-    icon: "openrouter",
-    colored: false,
-  },
-  { name: "Groq", model: "llama-3.3-70b", icon: "groq", colored: false },
-  {
-    name: "SiliconFlow",
-    model: "Qwen2.5-7B",
-    icon: "siliconflow",
-    colored: true,
-  },
-  {
-    name: "Moonshot",
-    model: "moonshot-v1-8k",
-    icon: "moonshot",
-    colored: false,
-  },
-  { name: "Ollama", model: "local · no key", icon: "ollama", colored: false },
+const set1 = [
+  { name: "DeepSeek", icon: "deepseek" },
+  { name: "OpenAI", icon: "openai" },
+  { name: "Anthropic", icon: "anthropic" },
+  { name: "Gemini", icon: "gemini" },
+  { name: "OpenRouter", icon: "openrouter" },
+  { name: "Groq", icon: "groq" },
+];
+
+const set2 = [
+  { name: "SiliconFlow", icon: "siliconflow" },
+  { name: "Moonshot", icon: "moonshot" },
+  { name: "Ollama", icon: "ollama" },
+  { name: "DeepSeek", icon: "deepseek" },
+  { name: "OpenAI", icon: "openai" },
+  { name: "Anthropic", icon: "anthropic" },
 ];
 
 export function Logos() {
+  const [currentSet, setCurrentSet] = useState(set1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSet((prev) => (prev === set1 ? set2 : set1));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <Section id="providers" title="Supported Providers">
+    <Section id="providers">
       <div className="border-x border-t">
-        <div className="grid grid-cols-1 sm:grid-cols-3">
-          {providers.map((p, idx) => (
-            <div
-              key={p.name}
-              className={`flex items-center justify-center py-8 px-6 hover:bg-muted/40 transition-colors border-b ${
-                idx >= 6 ? "sm:border-b-0" : ""
-              } ${(idx + 1) % 3 !== 0 ? "sm:border-r" : ""}`}
-            >
-              <div className="flex w-44 items-center gap-3.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`${basePath}/providers/${p.icon}.svg`}
-                  alt={p.name}
-                  width={26}
-                  height={26}
-                  className={`h-6 w-6 shrink-0 object-contain ${
-                    p.colored ? "" : "dark:invert"
-                  }`}
-                />
-                <div className="flex flex-col text-left min-w-0">
-                  <span className="font-mono text-sm font-semibold text-foreground leading-tight">
-                    {p.name}
-                  </span>
-                  <span className="mt-1 text-xs text-muted-foreground font-mono truncate">
-                    {p.model}
-                  </span>
-                </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
+          {set1.map((_, idx) => {
+            const item = currentSet[idx];
+            return (
+              <div
+                key={idx}
+                className="flex group items-center justify-center p-4 h-16 border-r border-t last:border-r-0 sm:last:border-r md:[&:nth-child(3n)]:border-r md:[&:nth-child(6n)]:border-r-0 [&:nth-child(-n+2)]:border-t-0 sm:[&:nth-child(-n+3)]:border-t-0 sm:[&:nth-child(3n)]:border-r-0 md:[&:nth-child(-n+6)]:border-t-0 [&:nth-child(2n)]:border-r-0 sm:[&:nth-child(2n)]:border-r"
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${item.name}-${idx}`}
+                    initial={{ opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.88 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: "easeInOut",
+                      delay: idx * 0.04,
+                    }}
+                    className="flex items-center gap-2 opacity-45 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`${basePath}/providers/${item.icon}.svg`}
+                      alt={item.name}
+                      width={20}
+                      height={20}
+                      className="h-5 w-5 shrink-0 object-contain grayscale brightness-0 dark:invert"
+                    />
+                    <span className="font-mono text-xs sm:text-sm font-medium text-foreground">
+                      {item.name}
+                    </span>
+                  </motion.div>
+                </AnimatePresence>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </Section>
