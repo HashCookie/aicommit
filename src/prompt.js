@@ -49,6 +49,7 @@ async function generateFromDiff(diff, type) {
     model,
     messages,
     extraParams: meta.extraParams,
+    protocol: meta.protocol,
   });
 
   return type === "branch" ? formatBranchName(raw) : cleanCommitMessage(raw);

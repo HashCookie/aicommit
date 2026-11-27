@@ -153,6 +153,79 @@ test("chatCompletion sends OpenAI-compatible payload and handles HTTP errors", a
   );
 });
 
+test("chatCompletion supports Anthropic protocol and keyless Ollama requests", async () => {
+  let anthropicReq;
+  const anthropicFetch = async (url, init) => {
+    anthropicReq = { url, init, body: JSON.parse(init.body) };
+    return {
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: "fix: resolve timeout" }],
+      }),
+    };
+  };
+
+  const anthropicResult = await chatCompletion({
+    baseURL: "https://api.anthropic.com/v1",
+    apiKey: "sk-ant-test",
+    model: "claude-3-5-haiku-latest",
+    messages: buildMessages("diff --git a/a.js b/a.js", "commit"),
+    protocol: "anthropic",
+    fetchImpl: anthropicFetch,
+  });
+
+  assert.equal(anthropicResult, "fix: resolve timeout");
+  assert.equal(anthropicReq.url, "https://api.anthropic.com/v1/messages");
+  assert.equal(anthropicReq.init.headers["x-api-key"], "sk-ant-test");
+  assert.equal(anthropicReq.init.headers["anthropic-version"], "2023-06-01");
+  assert.ok(anthropicReq.body.system);
+  assert.equal(anthropicReq.body.messages.length, 1);
+
+  let ollamaReq;
+  const ollamaFetch = async (url, init) => {
+    ollamaReq = { url, init };
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "chore: local commit" } }],
+      }),
+    };
+  };
+
+  const ollamaResult = await chatCompletion({
+    baseURL: "http://localhost:11434/v1",
+    apiKey: null,
+    model: "llama3.2",
+    messages: buildMessages("diff", "commit"),
+    fetchImpl: ollamaFetch,
+  });
+
+  assert.equal(ollamaResult, "chore: local commit");
+  assert.equal(ollamaReq.init.headers.Authorization, undefined);
+});
+
+test("config falls back to environment variables and handles keyless ollama", () => {
+  withTempConfig(() => {
+    const prevGroq = process.env.GROQ_API_KEY;
+    process.env.GROQ_API_KEY = "gsk_EnvSecret123456";
+    try {
+      assert.equal(getAIProvider(), "groq");
+      assert.equal(getApiKey("groq"), "gsk_EnvSecret123456");
+      assert.match(listConfig().GROQ_KEY, /env: GROQ_API_KEY/);
+
+      setConfig("AI_PROVIDER", "ollama");
+      assert.equal(getAIProvider(), "ollama");
+      assert.equal(listConfig().OLLAMA_KEY, "(not required)");
+    } finally {
+      if (prevGroq === undefined) {
+        delete process.env.GROQ_API_KEY;
+      } else {
+        process.env.GROQ_API_KEY = prevGroq;
+      }
+    }
+  });
+});
+
 test("parseNameStatus handles renames, deletions, and lockfile filtering", () => {
   const sample = [
     "M\tsrc/index.js",
