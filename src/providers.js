@@ -130,7 +130,7 @@ Rules:
 - Output ONLY the slug, nothing else`;
 
 function buildMessages(diff, type = "commit", options = {}) {
-  const { locale = "en", previousSuggestions = [] } = options;
+  const { locale = "en", previousSuggestions = [], context = "" } = options;
   let systemPrompt;
   if (type === "commit") {
     systemPrompt = getCommitSystemPrompt(locale);
@@ -140,9 +140,13 @@ function buildMessages(diff, type = "commit", options = {}) {
     throw new Error(`Unknown message type: ${type}`);
   }
 
+  const userContent = context.trim()
+    ? `Additional context from the author: ${context.trim()}\n\n${diff}`
+    : diff;
+
   const messages = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: diff },
+    { role: "user", content: userContent },
   ];
 
   if (previousSuggestions.length > 0) {

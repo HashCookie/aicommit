@@ -22,7 +22,10 @@ import {
   getStagedDiff,
   hasStagedChanges,
   isGitRepository,
+  isIgnoredFile,
   parseNameStatus,
+  stageTrackedChanges,
+  truncateFileDiff,
 } from "../src/git.js";
 import {
   buildMessages,
@@ -132,6 +135,12 @@ test("buildMessages supports locale and regenerate deduplication", () => {
   assert.equal(regenMsgs[2].content, "refactor: second try");
   assert.match(regenMsgs[3].content, /fix: first try/u);
   assert.match(regenMsgs[3].content, /refactor: second try/u);
+
+  const ctxMsgs = buildMessages("diff --git a/x.js b/x.js", "commit", {
+    context: "fix Safari date parsing",
+  });
+  assert.match(ctxMsgs[1].content, /fix Safari date parsing/u);
+  assert.match(ctxMsgs[1].content, /diff --git a\/x\.js/u);
 });
 
 test("chatCompletion sends OpenAI-compatible payload and handles HTTP errors", async () => {
@@ -266,6 +275,15 @@ test("parseNameStatus handles renames, deletions, and lockfile filtering", () =>
     { status: "R", oldFile: "src/old.js", file: "src/new.js" },
     { status: "D", file: "src/removed.js" },
   ]);
+
+  assert.equal(isIgnoredFile("dist/app.min.js"), true);
+  assert.equal(isIgnoredFile("assets/logo.svg"), true);
+  assert.equal(isIgnoredFile("src/app.js"), false);
+
+  const longDiff = "a".repeat(5000);
+  const truncated = truncateFileDiff(longDiff, 100);
+  assert.match(truncated, /truncated 4900 chars/u);
+  assert.equal(truncateFileDiff("short", 100), "short");
 });
 
 test("git operations work safely in paths with spaces and special characters", async () => {
@@ -314,6 +332,15 @@ test("git operations work safely in paths with spaces and special characters", a
       }
     ).trim();
     assert.equal(currentBranch, "feat/safe-branch");
+
+    // stageTrackedChanges stages modified tracked files without adding untracked files
+    fs.writeFileSync(path.join(dir, "hello.js"), "console.log('updated');\n");
+    fs.writeFileSync(path.join(dir, "untracked.js"), "console.log('new');\n");
+    await stageTrackedChanges(dir);
+    assert.equal(await hasStagedChanges(dir), true);
+    const updatedDiff = await getStagedDiff(dir);
+    assert.match(updatedDiff, /updated/u);
+    assert.doesNotMatch(updatedDiff, /untracked\.js/u);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

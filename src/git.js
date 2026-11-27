@@ -4,6 +4,7 @@ import { promisify } from "util";
 const execFileAsync = promisify(execFile);
 
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_DIFF_CHARS = 4000;
 const LINE_SPLIT_RE = /\r?\n/u;
 const IGNORED_FILES = new Set([
   "pnpm-lock.yaml",
@@ -12,10 +13,37 @@ const IGNORED_FILES = new Set([
   "bun.lock",
   "bun.lockb",
 ]);
+const IGNORED_EXTENSIONS = [
+  ".min.js",
+  ".min.css",
+  ".map",
+  ".svg",
+  ".ico",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".woff",
+  ".woff2",
+  ".pdf",
+];
 
 function isIgnoredFile(filePath) {
-  const baseName = filePath.split("/").pop();
-  return IGNORED_FILES.has(baseName);
+  const lower = filePath.toLowerCase();
+  const baseName = lower.split("/").pop();
+  if (IGNORED_FILES.has(baseName)) {
+    return true;
+  }
+  return IGNORED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function truncateFileDiff(diff, maxChars = MAX_FILE_DIFF_CHARS) {
+  if (diff.length <= maxChars) {
+    return diff;
+  }
+  const omitted = diff.length - maxChars;
+  return `${diff.slice(0, maxChars)}\n... (truncated ${omitted} chars)`;
 }
 
 async function runGit(args, cwd = process.cwd()) {
@@ -32,6 +60,10 @@ async function isGitRepository(cwd = process.cwd()) {
   } catch {
     return false;
   }
+}
+
+async function stageTrackedChanges(cwd = process.cwd()) {
+  await runGit(["add", "-u"], cwd);
 }
 
 async function hasStagedChanges(cwd = process.cwd()) {
@@ -85,10 +117,11 @@ async function getStagedDiff(cwd = process.cwd()) {
         const diff = await runGit(["diff", "--staged", "--", file], cwd).catch(
           () => ""
         );
-        return diff || `Renamed: ${oldFile} -> ${file}`;
+        return diff ? truncateFileDiff(diff) : `Renamed: ${oldFile} -> ${file}`;
       }
       try {
-        return await runGit(["diff", "--staged", "--", file], cwd);
+        const diff = await runGit(["diff", "--staged", "--", file], cwd);
+        return truncateFileDiff(diff);
       } catch (error) {
         return `Changed (${status}): ${file} (diff unavailable: ${error.message})`;
       }
@@ -99,12 +132,12 @@ async function getStagedDiff(cwd = process.cwd()) {
   return stat.trim() ? `${stat.trim()}\n\n${body}` : body;
 }
 
-async function commitChanges(message, cwd = process.cwd()) {
-  return await runGit(["commit", "-m", message], cwd);
+function commitChanges(message, cwd = process.cwd()) {
+  return runGit(["commit", "-m", message], cwd);
 }
 
-async function createAndCheckoutBranch(branchName, cwd = process.cwd()) {
-  return await runGit(["checkout", "-b", branchName], cwd);
+function createAndCheckoutBranch(branchName, cwd = process.cwd()) {
+  return runGit(["checkout", "-b", branchName], cwd);
 }
 
 export {
@@ -113,5 +146,9 @@ export {
   getStagedDiff,
   hasStagedChanges,
   isGitRepository,
+  isIgnoredFile,
+  MAX_FILE_DIFF_CHARS,
   parseNameStatus,
+  stageTrackedChanges,
+  truncateFileDiff,
 };
