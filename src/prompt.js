@@ -5,6 +5,7 @@ import {
   getApiKey,
   getAIModel,
   getBaseURL,
+  getLocale,
   getConfigValue,
 } from "./config.js";
 import {
@@ -17,6 +18,23 @@ import { commitChanges, createAndCheckoutBranch } from "./git.js";
 
 const DEFAULT_MAX_DIFF_CHARS = 32_000;
 const BRANCH_PREFIXES = ["feat", "fix", "docs", "chore", "refactor", "none"];
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+async function withSpinner(label, fn) {
+  if (!process.stdout.isTTY) {
+    return await fn();
+  }
+  let idx = 0;
+  const timer = setInterval(() => {
+    process.stdout.write(`\r${SPINNER_FRAMES[idx++ % SPINNER_FRAMES.length]} ${label}`);
+  }, 80);
+  try {
+    return await fn();
+  } finally {
+    clearInterval(timer);
+    process.stdout.write("\r\x1b[2K");
+  }
+}
 
 function truncateDiff(diff) {
   const configuredMax = Number(getConfigValue("MAX_DIFF_CHARS"));
@@ -35,14 +53,19 @@ function truncateDiff(diff) {
   return diff.slice(0, maxChars);
 }
 
-async function generateFromDiff(diff, type) {
+async function generateFromDiff(diff, type, options = {}) {
   const provider = getAIProvider();
   const meta = getProviderMeta(provider);
   const apiKey = getApiKey(provider);
   const model = getAIModel(provider);
   const baseURL = getBaseURL(provider);
+  const locale = options.locale || getLocale();
 
-  const messages = buildMessages(truncateDiff(diff), type);
+  const messages = buildMessages(truncateDiff(diff), type, {
+    locale,
+    previousSuggestions: options.previousSuggestions,
+  });
+
   const raw = await chatCompletion({
     baseURL,
     apiKey,
@@ -55,16 +78,29 @@ async function generateFromDiff(diff, type) {
   return type === "branch" ? formatBranchName(raw) : cleanCommitMessage(raw);
 }
 
-async function generateCommitMessage(diff) {
-  return await generateFromDiff(diff, "commit");
+async function generateCommitMessage(diff, options = {}) {
+  return await generateFromDiff(diff, "commit", options);
 }
 
-async function generateBranchName(diff) {
-  return await generateFromDiff(diff, "branch");
+async function generateBranchName(diff, options = {}) {
+  return await generateFromDiff(diff, "branch", options);
 }
 
-async function promptCommit(diff) {
-  let commitMessage = await generateCommitMessage(diff);
+async function promptCommit(diff, { autoAccept = false } = {}) {
+  const previousSuggestions = [];
+  let commitMessage = await withSpinner("Generating commit message...", () =>
+    generateCommitMessage(diff)
+  );
+
+  if (autoAccept) {
+    if (!commitMessage) {
+      throw new Error("Failed to generate a commit message.");
+    }
+    console.log(`Commit message: ${commitMessage}`);
+    const output = await commitChanges(commitMessage);
+    console.log(output.trim());
+    return;
+  }
 
   while (true) {
     if (!commitMessage) {
@@ -103,8 +139,10 @@ async function promptCommit(diff) {
     }
 
     if (action === "Regenerate") {
-      console.log("Regenerating commit message...");
-      commitMessage = await generateCommitMessage(diff);
+      previousSuggestions.push(commitMessage);
+      commitMessage = await withSpinner("Regenerating commit message...", () =>
+        generateCommitMessage(diff, { previousSuggestions })
+      );
       continue;
     }
 
@@ -114,7 +152,10 @@ async function promptCommit(diff) {
 }
 
 async function promptBranchCreation(diff) {
-  let slug = await generateBranchName(diff);
+  const previousSuggestions = [];
+  let slug = await withSpinner("Generating branch name...", () =>
+    generateBranchName(diff)
+  );
 
   const { prefix } = await inquirer.prompt([
     {
@@ -164,8 +205,10 @@ async function promptBranchCreation(diff) {
     }
 
     if (action === "Regenerate") {
-      console.log("Regenerating branch name...");
-      slug = await generateBranchName(diff);
+      previousSuggestions.push(slug);
+      slug = await withSpinner("Regenerating branch name...", () =>
+        generateBranchName(diff, { previousSuggestions })
+      );
       continue;
     }
 

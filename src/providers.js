@@ -69,50 +69,113 @@ const PROVIDERS = {
 const DEFAULT_PROVIDER = "deepseek";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const ANTHROPIC_VERSION = "2023-06-01";
+const BRANCH_PREFIX_RE = /^(?:feat|fix|docs|chore|refactor|hotfix|bugfix|style|perf|test|build|ci)-/;
 
-const PROMPTS = {
-  commit:
-    "You are a commit message generator. Generate a concise single-line commit message following the Conventional Commits specification (e.g. 'feat: add user login'). Output ONLY the commit message with no quotes, markdown fences, or explanation.",
-  branch:
-    "You are a branch name generator. Generate a concise slug (max 5 words) summarizing the changes. Output ONLY lowercase letters, numbers, and hyphens with no prefix, quotes, or explanation.",
-};
+function getCommitSystemPrompt(locale = "en") {
+  const normalized = (locale || "en").toLowerCase();
+  if (normalized === "zh" || normalized === "zh-cn" || normalized === "zh-hans") {
+    return `Write a single-line Conventional Commit message for the staged git diff.
+Types (keep <type> in English, choose the most accurate one):
+- feat: new user-facing feature | fix: bug fix | refactor: restructuring or dependency swap without behavior change | docs: docs only | test: tests | perf: performance | style: formatting | build/ci/chore: maintenance
+Rules:
+- Format: <type>: <concise Simplified Chinese description> (under 50 chars, no trailing period)
+- Summarize the intent, do not list file names
+- Output ONLY the commit message, nothing else`;
+  }
 
-function buildMessages(diff, type = "commit") {
-  const systemPrompt = PROMPTS[type];
-  if (!systemPrompt) {
+  const langRule =
+    normalized === "en"
+      ? "- Imperative mood, start description lowercase, keep proper nouns capitalized (e.g. README, API), no trailing period"
+      : `- Keep <type> in English, write <description> in concise ${locale}, no trailing period`;
+
+  return `Write a single-line Conventional Commit message for the staged git diff.
+Types (choose the most accurate one):
+- feat: new user-facing feature
+- fix: bug fix
+- refactor: code restructuring or dependency swap without changing external behavior
+- docs: documentation only
+- test: adding or updating tests
+- perf: performance improvement
+- style: formatting only
+- build/ci/chore: build config, CI, or maintenance
+Rules:
+- Format: <type>: <description> (under 72 chars total)
+${langRule}
+- Summarize the intent, do not list file names
+- Output ONLY the commit message, nothing else`;
+}
+
+const BRANCH_SYSTEM_PROMPT = `Write a short git branch slug summarizing the intent of the staged diff.
+Rules:
+- 2 to 4 lowercase words joined by hyphens (a-z, 0-9, -), e.g. replace-axios-with-fetch, preserve-api-key-case
+- Describe the intent, NEVER include file names or extensions (no js, json, md)
+- Do NOT include prefixes like feat, fix, docs, chore, refactor
+- Output ONLY the slug, nothing else`;
+
+function buildMessages(diff, type = "commit", options = {}) {
+  const { locale = "en", previousSuggestions = [] } = options;
+  let systemPrompt;
+  if (type === "commit") {
+    systemPrompt = getCommitSystemPrompt(locale);
+  } else if (type === "branch") {
+    systemPrompt = BRANCH_SYSTEM_PROMPT;
+  } else {
     throw new Error(`Unknown message type: ${type}`);
   }
-  return [
+
+  const messages = [
     { role: "system", content: systemPrompt },
     { role: "user", content: diff },
   ];
+
+  if (previousSuggestions.length > 0) {
+    messages.push({
+      role: "assistant",
+      content: previousSuggestions[previousSuggestions.length - 1],
+    });
+    const list = previousSuggestions.map((s) => `- ${s}`).join("\n");
+    messages.push({
+      role: "user",
+      content: `Generate a different alternative ${type === "branch" ? "branch slug" : "commit message"} for the same diff. Do not repeat any of these previous suggestions:\n${list}`,
+    });
+  }
+
+  return messages;
+}
+
+function stripThinkingTags(raw) {
+  return raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 }
 
 function cleanCommitMessage(raw) {
   return (
-    raw
-      .trim()
+    stripThinkingTags(raw)
       .replace(/^```[\w-]*\n?/g, "")
       .replace(/\n?```$/g, "")
       .split(/\r?\n/)
       .map((line) => line.trim())
       .find(Boolean)
       ?.replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/[.。]+$/, "")
       .trim() ?? ""
   );
 }
 
-function formatBranchName(raw) {
-  return raw
-    .trim()
+function formatBranchName(raw, { stripPrefix = true } = {}) {
+  let slug = stripThinkingTags(raw)
     .replace(/^```[\w-]*\n?/g, "")
     .replace(/\n?```$/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50);
+    .replace(/^-|-$/g, "");
+
+  if (stripPrefix) {
+    slug = slug.replace(BRANCH_PREFIX_RE, "");
+  }
+
+  return slug.slice(0, 50).replace(/-$/, "");
 }
 
 async function parseErrorDetail(response) {
