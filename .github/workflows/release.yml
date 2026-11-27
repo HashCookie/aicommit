@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -17,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -25,17 +38,28 @@ jobs:
       - name: Upgrade npm for Trusted Publishing (OIDC)
         run: npm install -g npm@latest
 
-      - name: Verify tag matches package.json version
+      - run: npm install --no-audit --no-fund
+
+      - run: npm test
+
+      - name: Bump version & push tag (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          NEW_TAG=$(npm version "${{ inputs.bump }}")
+          git push origin HEAD:master --follow-tags
+          echo "RELEASE_TAG=$NEW_TAG" >> "$GITHUB_ENV"
+
+      - name: Verify tag matches package.json (tag push)
+        if: github.event_name == 'push'
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"
           if [ "$GITHUB_REF_NAME" != "$PKG_VERSION" ]; then
             echo "Tag ($GITHUB_REF_NAME) does not match package.json ($PKG_VERSION)"
             exit 1
           fi
-
-      - run: npm install --no-audit --no-fund
-
-      - run: npm test
+          echo "RELEASE_TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
 
       - name: Publish to npm (OIDC Trusted Publishing)
         run: npm publish --provenance --access public
@@ -43,4 +67,4 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$RELEASE_TAG" --generate-notes
