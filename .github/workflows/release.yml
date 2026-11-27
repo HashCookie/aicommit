@@ -21,7 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: "https://registry.npmjs.org"
+
+      - name: Upgrade npm for Trusted Publishing (OIDC)
+        run: npm install -g npm@latest
 
       - name: Verify tag matches package.json version
         run: |
@@ -35,9 +37,7 @@ jobs:
 
       - run: npm test
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (OIDC Trusted Publishing)
         run: npm publish --provenance --access public
 
       - name: Create GitHub Release
