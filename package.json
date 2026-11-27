@@ -8,11 +8,11 @@
     "node": ">=18"
   },
   "bin": {
-    "aicommit": "./src/index.js"
+    "aicommit": "src/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/HashCookie/aicommit.git"
+    "url": "git+https://github.com/HashCookie/aicommit.git"
   },
   "homepage": "https://github.com/HashCookie/aicommit#readme",
   "bugs": {
