@@ -95,17 +95,36 @@ test("config read/write handles missing file, preserves key case, and auto-detec
 
 test("cleanCommitMessage and formatBranchName sanitize model outputs", () => {
   assert.equal(
-    cleanCommitMessage("```\n\"feat: add retry logic\"\n```"),
+    cleanCommitMessage("```\n\"feat: add retry logic.\"\n```"),
     "feat: add retry logic"
   );
   assert.equal(
-    cleanCommitMessage("fix: handle empty diff\n\nExtra explanation"),
+    cleanCommitMessage("<think>internal reasoning</think>\nfix: handle empty diff\n\nExtra explanation"),
     "fix: handle empty diff"
   );
   assert.equal(
     formatBranchName("```\nAdd User Login & OAuth2!\n```"),
     "add-user-login-oauth2"
   );
+  assert.equal(
+    formatBranchName("<think>hmm</think>\nfeat-add-login"),
+    "add-login"
+  );
+});
+
+test("buildMessages supports locale and regenerate deduplication", () => {
+  const zhMsgs = buildMessages("diff", "commit", { locale: "zh" });
+  assert.match(zhMsgs[0].content, /Simplified Chinese/);
+
+  const regenMsgs = buildMessages("diff", "commit", {
+    locale: "en",
+    previousSuggestions: ["fix: first try", "refactor: second try"],
+  });
+  assert.equal(regenMsgs.length, 4);
+  assert.equal(regenMsgs[2].role, "assistant");
+  assert.equal(regenMsgs[2].content, "refactor: second try");
+  assert.match(regenMsgs[3].content, /fix: first try/);
+  assert.match(regenMsgs[3].content, /refactor: second try/);
 });
 
 test("chatCompletion sends OpenAI-compatible payload and handles HTTP errors", async () => {

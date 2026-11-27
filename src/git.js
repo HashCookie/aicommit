@@ -70,6 +70,9 @@ async function getStagedDiff(cwd = process.cwd()) {
     return "";
   }
 
+  const statFiles = changes.map((c) => c.file);
+  const stat = await runGit(["diff", "--staged", "--stat", "--", ...statFiles], cwd).catch(() => "");
+
   const diffs = await Promise.all(
     changes.map(async ({ status, oldFile, file }) => {
       if (status === "D") {
@@ -89,7 +92,8 @@ async function getStagedDiff(cwd = process.cwd()) {
     })
   );
 
-  return diffs.filter(Boolean).join("\n");
+  const body = diffs.filter(Boolean).join("\n");
+  return stat.trim() ? `${stat.trim()}\n\n${body}` : body;
 }
 
 async function commitChanges(message, cwd = process.cwd()) {

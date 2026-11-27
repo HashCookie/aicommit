@@ -148,6 +148,10 @@ function getBaseURL(provider = getAIProvider()) {
   return config.AI_BASE_URL || getProviderMeta(provider).baseURL;
 }
 
+function getLocale() {
+  return getConfigValue("AI_LOCALE") || "en";
+}
+
 function maskSecret(value) {
   if (!value || typeof value !== "string") {
     return "Not Set";
@@ -183,6 +187,10 @@ function listConfig() {
     [apiKeyName]: keyDisplay,
   };
 
+  if (config.AI_LOCALE) {
+    result.AI_LOCALE = config.AI_LOCALE;
+  }
+
   if (config.MAX_DIFF_CHARS) {
     result.MAX_DIFF_CHARS = config.MAX_DIFF_CHARS;
   }
@@ -203,6 +211,7 @@ export {
   getApiKey,
   getAIModel,
   getBaseURL,
+  getLocale,
   maskSecret,
   listConfig,
 };

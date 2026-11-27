@@ -37,6 +37,9 @@ aicommit
 ```sh
 git add <files...>
 aicommit
+
+# Skip confirmation and commit immediately
+aicommit -y
 ```
 
 Interactive actions:
@@ -100,6 +103,7 @@ Common options:
 - `AI_PROVIDER` — active provider (automatically resets `AI_MODEL` to that provider's default)
 - `AI_MODEL` — override the default model
 - `AI_BASE_URL` — override the default API base URL
+- `AI_LOCALE` — commit description language (default: `en`, e.g. `zh` for Simplified Chinese)
 - `MAX_DIFF_CHARS` — maximum diff characters sent to the model (default: `32000`)
 
 ## Development

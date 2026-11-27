@@ -37,6 +37,9 @@ aicommit
 ```sh
 git add <files...>
 aicommit
+
+# 跳过交互确认直接提交
+aicommit -y
 ```
 
 交互菜单支持：
@@ -100,6 +103,7 @@ aicommit config unset <key>              # 删除配置
 - `AI_PROVIDER`：当前 Provider（切换时会自动更新为该 Provider 的默认模型）
 - `AI_MODEL`：覆盖默认模型名
 - `AI_BASE_URL`：覆盖默认接口地址
+- `AI_LOCALE`：commit 描述语言（默认 `en`，设为 `zh` 生成英文前缀 + 中文描述）
 - `MAX_DIFF_CHARS`：发送给模型的最大 diff 字符数（默认 `32000`）
 
 ## 开发与测试

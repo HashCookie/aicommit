@@ -27,9 +27,9 @@ function printHelp() {
   console.log(`aicommit v${VERSION}
 
 Usage:
-  aicommit                     Generate a commit message from staged changes
+  aicommit [-y | --yes]        Generate a commit message from staged changes (-y skips prompt)
   aicommit branch | b          Generate and checkout a branch from staged changes
-  aicommit config set <k>=<v>  Set a config value (AI_PROVIDER, AI_MODEL, AI_BASE_URL, <PROVIDER>_KEY)
+  aicommit config set <k>=<v>  Set a config value (AI_PROVIDER, AI_MODEL, AI_BASE_URL, AI_LOCALE, <PROVIDER>_KEY)
   aicommit config get <key>    Get a config value
   aicommit config unset <key>  Remove a config value
   aicommit config list         Show active configuration
@@ -143,10 +143,11 @@ async function main() {
     return;
   }
 
-  if (!command) {
+  if (!command || command === "-y" || command === "--yes") {
+    const autoAccept = command === "-y" || command === "--yes";
     const diff = await ensureReadyAndGetDiff();
     if (diff) {
-      await promptCommit(diff);
+      await promptCommit(diff, { autoAccept });
     }
     return;
   }
