@@ -1,91 +1,84 @@
 <h1 align="center">aicommit</h1>
 
 <p align="center">
-基于AI自动生成commit信息,通过CLI提升工作流程。
+基于 AI 自动生成 Conventional Commits 提交信息与分支名的 CLI 工具。
 </p>
 
 ## 安装
 
-前置:需要安装[Node](https://nodejs.org/)、[NPM](https://www.npmjs.com/)
+需要 Node.js >= 18。
 
 ```sh
 npm install -g unique-aicommit
 ```
 
+## 配置
+
+内置支持的 Provider：
+
+| Provider | 默认模型 | API Key 配置项 |
+|----------|----------|----------------|
+| `deepseek` | `deepseek-chat` | `DEEPSEEK_KEY` |
+| `moonshot` | `moonshot-v1-8k` | `MOONSHOT_KEY` |
+| `siliconflow` | `Qwen/Qwen2.5-7B-Instruct` | `SILICONFLOW_KEY` |
+| `openai` | `gpt-4o-mini` | `OPENAI_KEY` |
+
+选择 Provider 并设置 API Key：
+
+```sh
+aicommit config set AI_PROVIDER=siliconflow
+aicommit config set SILICONFLOW_KEY=<your_token>
+```
+
+可选配置：
+
+```sh
+# 自定义模型
+aicommit config set AI_MODEL=deepseek-ai/DeepSeek-V3
+
+# 接入任意 OpenAI 兼容接口（如 OpenRouter、Ollama）
+aicommit config set AI_BASE_URL=https://api.example.com/v1
+
+# 自定义传给模型的最大 diff 字符数（默认 32000）
+aicommit config set MAX_DIFF_CHARS=24000
+```
+
+查看或删除配置：
+
+```sh
+aicommit config list
+aicommit config get SILICONFLOW_KEY
+aicommit config unset AI_BASE_URL
+```
+
 ## 用法
-
-### 支持的 AI 模型：
-
-- [DeepSeek](https://www.deepseek.com/)
-- [Moonshot](https://platform.moonshot.cn/)
-- [Deepbricks](https://deepbricks.ai/)
-
-获取 API 密钥 👆
-
-### 选择 AI 模型
-
-```sh
-aicommit config set AI_PROVIDER=deepseek
-or
-aicommit config set AI_PROVIDER=moonshot
-or
-aicommit config set AI_PROVIDER=deepbricks
-```
-
-设置 API：
-
-```sh
-aicommit config set DeepSeek_KEY=<your token>
-or
-aicommit config set Moonshot_KEY=<your token>
-or
-aicommit config set Deepbricks_KEY=<your token>
-```
 
 ### 生成 Commit 信息
 
-在你的 git 仓库中，运行：
+先 `git add` 暂存更改，然后运行：
 
 ```sh
 aicommit
 ```
 
-演示：
+支持 `Accept` / `Edit` / `Regenerate` / `Cancel`。
+
 ![aicommit](public/aicommit.jpg)
 
-### 生成分支名称
+### 生成分支名
 
-基于暂存区的更改自动生成分支名：
+基于暂存区更改生成分支名并自动切换：
 
 ```sh
 aicommit branch
-# or
+# 或
 aicommit b
 ```
 
-分支生成功能支持：
-- 自动分析暂存区内容生成语义化分支名
-- 支持常用分支类型前缀（feat:、fix:、docs: 等）
-- 可以编辑或取消生成的分支名
-- 自动创建并切换到新分支
-
-## 获取配置值
-
-获取完整配置:
+## 开发与测试
 
 ```sh
-aicommit config list
+npm test
 ```
 
-要获取指定配置选项，请使用以下命令：
-
-```sh
-aicommit config get <key>
-```
-
-例如，要检索 API 密钥：
-
-```sh
-aicommit config get DeepSeek_KEY
-```
 参考 [aicommits](https://github.com/Nutlope/aicommits)

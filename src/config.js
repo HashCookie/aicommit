@@ -1,115 +1,174 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { PROVIDERS, DEFAULT_PROVIDER } from "./providers.js";
 
-const CONFIG_FILE = path.join(os.homedir(), ".aicommitrc");
-
-const DEFAULT_PROVIDER = "deepseek";
-const PROVIDER_CONFIGS = {
-  deepseek: {
-    defaultModel: "deepseek-chat",
-    apiKeyName: "DEEPSEEK_KEY",
-  },
-  moonshot: {
-    defaultModel: "moonshot-v1-8k",
-    apiKeyName: "MOONSHOT_KEY",
-  },
-  deepbricks: {
-    defaultModel: "gpt-3.5-turbo",
-    apiKeyName: "DEEPBRICKS_KEY",
-  },
-};
-
-function getConfig() {
-  try {
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
-  } catch (error) {
-    console.error(`Error reading config file: ${error.message}`);
-    return {};
-  }
-}
-
-function setConfig(key, value) {
-  const config = getConfig();
-  const normalizedKey = normalizeKey(key);
-  config[normalizedKey] = value;
-
-  // 当设置 AI_PROVIDER 时，自动更新 AI_MODEL
-  if (normalizedKey === "AI_PROVIDER") {
-    const providerConfig = PROVIDER_CONFIGS[value.toLowerCase()];
-    if (providerConfig) {
-      config["AI_MODEL"] = providerConfig.defaultModel;
-    }
-  }
-
-  try {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error(`Error writing config file: ${error.message}`);
-  }
-}
-
-function getAIModel() {
-  const provider = getAIProvider();
-  const config = getConfig();
-  return config["AI_MODEL"] || PROVIDER_CONFIGS[provider].defaultModel;
-}
-
-function getConfigValue(key) {
-  const config = getConfig();
-  const normalizedKey = normalizeKey(key);
-  return config[normalizedKey];
+function getConfigFilePath() {
+  return process.env.AICOMMIT_CONFIG_PATH || path.join(os.homedir(), ".aicommitrc");
 }
 
 function normalizeKey(key) {
-  const keyMap = {
-    ai_provider: "AI_PROVIDER",
-    ai_model: "AI_MODEL",
-  };
-  return keyMap[key.toLowerCase()] || key.toUpperCase();
+  return key.trim().toUpperCase();
 }
 
-function getApiKey() {
-  const provider = getAIProvider();
-  const providerConfig = PROVIDER_CONFIGS[provider];
-  return providerConfig ? getConfigValue(providerConfig.apiKeyName) : null;
+function parseKeyValue(input) {
+  if (!input || typeof input !== "string") {
+    return null;
+  }
+  const eqIndex = input.indexOf("=");
+  if (eqIndex <= 0) {
+    return null;
+  }
+  const key = input.slice(0, eqIndex).trim();
+  const value = input.slice(eqIndex + 1).trim();
+  if (!key || !value) {
+    return null;
+  }
+  return { key, value };
+}
+
+function readConfig() {
+  const filePath = getConfigFilePath();
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return {};
+    }
+    throw new Error(`Failed to read config file (${filePath}): ${error.message}`);
+  }
+}
+
+function writeConfig(config) {
+  const filePath = getConfigFilePath();
+  fs.writeFileSync(filePath, `${JSON.stringify(config, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+}
+
+function setConfig(key, value) {
+  const config = readConfig();
+  const normalizedKey = normalizeKey(key);
+
+  if (normalizedKey === "AI_PROVIDER") {
+    const providerName = value.toLowerCase();
+    const providerConfig = PROVIDERS[providerName];
+    if (!providerConfig) {
+      const supported = Object.keys(PROVIDERS).join(", ");
+      throw new Error(
+        `Unsupported AI_PROVIDER "${value}". Supported providers: ${supported}`
+      );
+    }
+    config.AI_PROVIDER = providerName;
+    config.AI_MODEL = providerConfig.defaultModel;
+  } else {
+    config[normalizedKey] = value;
+  }
+
+  writeConfig(config);
+  return { key: normalizedKey, value: config[normalizedKey] };
+}
+
+function unsetConfig(key) {
+  const config = readConfig();
+  const normalizedKey = normalizeKey(key);
+  if (!(normalizedKey in config)) {
+    return false;
+  }
+  delete config[normalizedKey];
+  writeConfig(config);
+  return true;
+}
+
+function getConfigValue(key) {
+  const config = readConfig();
+  return config[normalizeKey(key)];
 }
 
 function getAIProvider() {
-  const provider = getConfigValue("AI_PROVIDER");
-  return provider && PROVIDER_CONFIGS[provider] ? provider : DEFAULT_PROVIDER;
+  const config = readConfig();
+  const configured = config.AI_PROVIDER?.toLowerCase();
+  if (configured && PROVIDERS[configured]) {
+    return configured;
+  }
+
+  // If AI_PROVIDER is unset and the default provider has no key,
+  // auto-detect the first provider that has a configured API key.
+  if (!config[PROVIDERS[DEFAULT_PROVIDER].apiKeyName]) {
+    const detected = Object.entries(PROVIDERS).find(
+      ([, meta]) => Boolean(config[meta.apiKeyName])
+    );
+    if (detected) {
+      return detected[0];
+    }
+  }
+
+  return DEFAULT_PROVIDER;
+}
+
+function getProviderMeta(provider = getAIProvider()) {
+  return PROVIDERS[provider] || PROVIDERS[DEFAULT_PROVIDER];
+}
+
+function getApiKey(provider = getAIProvider()) {
+  const meta = getProviderMeta(provider);
+  return getConfigValue(meta.apiKeyName) || null;
+}
+
+function getAIModel(provider = getAIProvider()) {
+  const config = readConfig();
+  return config.AI_MODEL || getProviderMeta(provider).defaultModel;
+}
+
+function getBaseURL(provider = getAIProvider()) {
+  const config = readConfig();
+  return config.AI_BASE_URL || getProviderMeta(provider).baseURL;
+}
+
+function maskSecret(value) {
+  if (!value || typeof value !== "string") {
+    return "Not Set";
+  }
+  if (value.length <= 8) {
+    return "****";
+  }
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
 function listConfig() {
-  const config = getConfig();
+  const config = readConfig();
   const provider = getAIProvider();
-  const providerConfig = PROVIDER_CONFIGS[provider];
+  const meta = getProviderMeta(provider);
+  const apiKeyName = meta.apiKeyName;
 
-  if (!providerConfig) {
-    console.error(`Invalid AI provider: ${provider}`);
-    return {};
+  const result = {
+    AI_PROVIDER: config.AI_PROVIDER || `${provider} (auto)`,
+    AI_MODEL: getAIModel(provider),
+    AI_BASE_URL: getBaseURL(provider),
+    [apiKeyName]: maskSecret(config[apiKeyName]),
+  };
+
+  if (config.MAX_DIFF_CHARS) {
+    result.MAX_DIFF_CHARS = config.MAX_DIFF_CHARS;
   }
 
-  const apiKeyName = providerConfig.apiKeyName;
-
-  return {
-    [apiKeyName]: config[apiKeyName]
-      ? `${config[apiKeyName].substr(0, 4)}...${config[apiKeyName].substr(-4)}`
-      : "Not Set",
-    AI_PROVIDER: config.AI_PROVIDER || `${DEFAULT_PROVIDER} (Default)`,
-    AI_MODEL: getAIModel(),
-  };
+  return result;
 }
 
-// TODO: Add support for additional AI providers in the future
-
 export {
-  getConfig,
+  PROVIDERS,
+  normalizeKey,
+  parseKeyValue,
+  readConfig,
   setConfig,
-  getApiKey,
-  getAIProvider,
-  getAIModel,
-  listConfig,
+  unsetConfig,
   getConfigValue,
-  PROVIDER_CONFIGS,
+  getAIProvider,
+  getProviderMeta,
+  getApiKey,
+  getAIModel,
+  getBaseURL,
+  maskSecret,
+  listConfig,
 };

@@ -4,15 +4,18 @@
   "description": "A tool to generate standardized commit messages using AI.",
   "main": "src/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "aicommit": "./src/index.js"
   },
   "dependencies": {
-    "axios": "^0.21.1",
     "inquirer": "^8.2.6"
   },
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test",
     "publish-package": "npm version patch && npm publish"
   },
   "author": "HashCookie",
@@ -20,9 +23,9 @@
   "files": [
     "src/index.js",
     "src/config.js",
-    "src/gitOperations.js",
-    "src/messageGenerator.js",
-    "src/aiProviders.js"
+    "src/git.js",
+    "src/providers.js",
+    "src/prompt.js"
   ],
   "keywords": [
     "AI",
