@@ -85,11 +85,14 @@ function handleConfig(subcommand, rawArg) {
 
 async function ensureReadyAndGetDiff() {
   const provider = getAIProvider();
+  const meta = getProviderMeta(provider);
   const apiKey = getApiKey(provider);
-  if (!apiKey) {
-    const { apiKeyName } = getProviderMeta(provider);
+  if (meta.requiresApiKey !== false && !apiKey) {
+    const envHint = meta.envKeys?.length
+      ? ` or export ${meta.envKeys[0]}=<your_key>`
+      : "";
     console.error(
-      `API key not set for "${provider}". Run:\n  aicommit config set ${apiKeyName}=<your_key>`
+      `API key not set for "${provider}". Run:\n  aicommit config set ${meta.apiKeyName}=<your_key>${envHint}`
     );
     process.exit(1);
   }

@@ -86,6 +86,15 @@ function getConfigValue(key) {
   return config[normalizeKey(key)];
 }
 
+function findEnvKey(meta) {
+  for (const envName of meta.envKeys || []) {
+    if (process.env[envName]) {
+      return { value: process.env[envName], envName };
+    }
+  }
+  return null;
+}
+
 function getAIProvider() {
   const config = readConfig();
   const configured = config.AI_PROVIDER?.toLowerCase();
@@ -94,13 +103,21 @@ function getAIProvider() {
   }
 
   // If AI_PROVIDER is unset and the default provider has no key,
-  // auto-detect the first provider that has a configured API key.
-  if (!config[PROVIDERS[DEFAULT_PROVIDER].apiKeyName]) {
-    const detected = Object.entries(PROVIDERS).find(
+  // auto-detect the first provider with a configured key (config file first, then env).
+  const defaultMeta = PROVIDERS[DEFAULT_PROVIDER];
+  if (!config[defaultMeta.apiKeyName] && !findEnvKey(defaultMeta)) {
+    const fromConfig = Object.entries(PROVIDERS).find(
       ([, meta]) => Boolean(config[meta.apiKeyName])
     );
-    if (detected) {
-      return detected[0];
+    if (fromConfig) {
+      return fromConfig[0];
+    }
+
+    const fromEnv = Object.entries(PROVIDERS).find(([, meta]) =>
+      Boolean(findEnvKey(meta))
+    );
+    if (fromEnv) {
+      return fromEnv[0];
     }
   }
 
@@ -113,7 +130,12 @@ function getProviderMeta(provider = getAIProvider()) {
 
 function getApiKey(provider = getAIProvider()) {
   const meta = getProviderMeta(provider);
-  return getConfigValue(meta.apiKeyName) || null;
+  const fromConfig = getConfigValue(meta.apiKeyName);
+  if (fromConfig) {
+    return fromConfig;
+  }
+  const fromEnv = findEnvKey(meta);
+  return fromEnv ? fromEnv.value : null;
 }
 
 function getAIModel(provider = getAIProvider()) {
@@ -142,11 +164,23 @@ function listConfig() {
   const meta = getProviderMeta(provider);
   const apiKeyName = meta.apiKeyName;
 
+  let keyDisplay;
+  if (meta.requiresApiKey === false && !config[apiKeyName] && !findEnvKey(meta)) {
+    keyDisplay = "(not required)";
+  } else if (config[apiKeyName]) {
+    keyDisplay = maskSecret(config[apiKeyName]);
+  } else {
+    const envHit = findEnvKey(meta);
+    keyDisplay = envHit
+      ? `${maskSecret(envHit.value)} (env: ${envHit.envName})`
+      : "Not Set";
+  }
+
   const result = {
     AI_PROVIDER: config.AI_PROVIDER || `${provider} (auto)`,
     AI_MODEL: getAIModel(provider),
     AI_BASE_URL: getBaseURL(provider),
-    [apiKeyName]: maskSecret(config[apiKeyName]),
+    [apiKeyName]: keyDisplay,
   };
 
   if (config.MAX_DIFF_CHARS) {
