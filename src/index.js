@@ -4,152 +4,156 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  getApiKey,
+  PROVIDERS,
+  parseKeyValue,
   setConfig,
-  getAIProvider,
-  listConfig,
+  unsetConfig,
   getConfigValue,
-  PROVIDER_CONFIGS,
+  getAIProvider,
+  getProviderMeta,
+  getApiKey,
+  listConfig,
 } from "./config.js";
-import {
-  isGitRepository,
-  checkStagedChanges,
-  executeDiff,
-} from "./gitOperations.js";
-import {
-  generateCommitMessage,
-  promptCommit,
-  generateBranchName,
-  promptBranchCreation,
-} from "./messageGenerator.js";
+import { isGitRepository, hasStagedChanges, getStagedDiff } from "./git.js";
+import { promptCommit, promptBranchCreation } from "./prompt.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const packageJson = JSON.parse(
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { version: VERSION } = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../package.json"), "utf8")
 );
-const VERSION = packageJson.version;
 
-const args = process.argv.slice(2);
+function printHelp() {
+  const providers = Object.keys(PROVIDERS).join(", ");
+  console.log(`aicommit v${VERSION}
 
-async function handleConfig(command, key) {
-  switch (command) {
-    case "set":
-      if (key) {
-        const [configKey, configValue] = key.split("=");
-        if (configValue) {
-          setConfig(configKey, configValue);
-          console.log(`${configKey} has been set up successfully.`);
-        } else {
-          console.log(
-            "Invalid set command. Use the format: aicommit config set key=value"
-          );
-        }
+Usage:
+  aicommit                     Generate a commit message from staged changes
+  aicommit branch | b          Generate and checkout a branch from staged changes
+  aicommit config set <k>=<v>  Set a config value (AI_PROVIDER, AI_MODEL, AI_BASE_URL, <PROVIDER>_KEY)
+  aicommit config get <key>    Get a config value
+  aicommit config unset <key>  Remove a config value
+  aicommit config list         Show active configuration
+  aicommit --version | -v      Show version
+  aicommit --help | -h         Show help
+
+Supported providers: ${providers}`);
+}
+
+function handleConfig(subcommand, rawArg) {
+  switch (subcommand?.toLowerCase()) {
+    case "set": {
+      const parsed = parseKeyValue(rawArg);
+      if (!parsed) {
+        console.error("Invalid format. Usage: aicommit config set key=value");
+        process.exit(1);
       }
+      const { key } = setConfig(parsed.key, parsed.value);
+      console.log(`${key} has been set.`);
       break;
-    case "get":
-      if (key) {
-        const value = getConfigValue(key);
-        console.log(value ? `${key}: ${value}` : `${key} Not set.`);
+    }
+    case "get": {
+      if (!rawArg) {
+        console.error("Usage: aicommit config get <key>");
+        process.exit(1);
       }
+      const value = getConfigValue(rawArg);
+      console.log(value !== undefined ? `${rawArg}: ${value}` : `${rawArg}: Not set`);
       break;
-    case "list":
+    }
+    case "unset": {
+      if (!rawArg) {
+        console.error("Usage: aicommit config unset <key>");
+        process.exit(1);
+      }
+      const removed = unsetConfig(rawArg);
+      console.log(removed ? `${rawArg} removed.` : `${rawArg} was not set.`);
+      break;
+    }
+    case "list": {
       const configs = listConfig();
       console.log("Current configuration:");
-      Object.entries(configs).forEach(([key, value]) => {
-        console.log(`${key}: ${value}`);
-      });
+      for (const [key, value] of Object.entries(configs)) {
+        console.log(`  ${key}: ${value}`);
+      }
       break;
+    }
     default:
-      console.log("Invalid config command. Available commands: set, get, list");
+      console.error("Invalid config command. Available: set, get, unset, list");
+      process.exit(1);
   }
 }
 
-async function checkApiKeyAndRepo() {
+async function ensureReadyAndGetDiff() {
   const provider = getAIProvider();
-  const apiKey = getApiKey();
+  const apiKey = getApiKey(provider);
   if (!apiKey) {
-    const apiKeyName = PROVIDER_CONFIGS[provider].apiKeyName;
+    const { apiKeyName } = getProviderMeta(provider);
     console.error(
-      `API key not set for ${provider}. Please use the following command to set it: 'aicommit config set ${apiKeyName}=<your key>'`
+      `API key not set for "${provider}". Run:\n  aicommit config set ${apiKeyName}=<your_key>`
     );
     process.exit(1);
   }
 
-  const isGitRepo = await isGitRepository();
-  if (!isGitRepo) {
-    console.log("Error: Current directory is not a Git repository.");
-    console.log(
-      "Please run 'aicommit' in the Git repository, or use 'git init' to initialize a repository."
-    );
+  if (!(await isGitRepository())) {
+    console.error("Error: Current directory is not a Git repository.");
     process.exit(1);
   }
 
-  const hasStaged = await checkStagedChanges();
-  if (!hasStaged) {
-    console.log(
-      "Warning: No changes detected to commit. Please use 'git add' to stage your changes before committing."
-    );
-    console.log("After saving changes, run 'aicommit' again.");
-    return false;
+  if (!(await hasStagedChanges())) {
+    console.log("No staged changes found. Stage files with 'git add' first.");
+    return null;
   }
 
-  return true;
+  const diff = await getStagedDiff();
+  if (!diff) {
+    console.log("Only ignored lockfiles are staged. Nothing to summarize.");
+    return null;
+  }
+
+  return diff;
 }
 
 async function main() {
-  if (args[0] === "--version") {
-    console.log(`aicommit version ${VERSION}`);
+  const args = process.argv.slice(2);
+  const [command, ...rest] = args;
+
+  if (command === "--version" || command === "-v") {
+    console.log(`aicommit v${VERSION}`);
     return;
   }
 
-  if (args[0] === "config") {
-    await handleConfig(args[1]?.toLowerCase(), args[2]?.toLowerCase());
+  if (command === "--help" || command === "-h") {
+    printHelp();
     return;
   }
 
-  if (args[0] === "branch" || args[0] === "b") {
-    if (await checkApiKeyAndRepo()) {
-      try {
-        const diff = await executeDiff();
-        if (diff) {
-          const branchName = await generateBranchName(diff);
-          if (branchName) {
-            promptBranchCreation(branchName);
-          } else {
-            console.log("Failed to generate branch name. Please try again.");
-          }
-        }
-      } catch (error) {
-        console.error("Error:", error.message);
-      }
+  if (command === "config") {
+    handleConfig(rest[0], rest[1]);
+    return;
+  }
+
+  if (command === "branch" || command === "b") {
+    const diff = await ensureReadyAndGetDiff();
+    if (diff) {
+      await promptBranchCreation(diff);
     }
     return;
   }
 
-  if (args.length === 0) {
-    if (await checkApiKeyAndRepo()) {
-      try {
-        const diff = await executeDiff();
-        if (diff) {
-          const commitMessage = await generateCommitMessage(diff);
-          if (commitMessage) {
-            promptCommit(commitMessage);
-          } else {
-            console.log(
-              "Failed to generate a commit message. Please try again."
-            );
-          }
-        }
-      } catch (error) {
-        console.error("ERROR:", error.message);
-      }
+  if (!command) {
+    const diff = await ensureReadyAndGetDiff();
+    if (diff) {
+      await promptCommit(diff);
     }
+    return;
   }
+
+  console.error(`Unknown command: "${command}"\n`);
+  printHelp();
+  process.exit(1);
 }
 
 main().catch((error) => {
-  console.error("Unhandled error:", error);
+  console.error(`Error: ${error.message}`);
   process.exit(1);
 });
