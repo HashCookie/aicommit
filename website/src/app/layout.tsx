@@ -1,6 +1,5 @@
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { siteConfig } from "@/lib/config";
 import { cn, constructMetadata } from "@/lib/utils";
 import { GeistMono } from "geist/font/mono";
@@ -42,7 +41,6 @@ export default function RootLayout({
           enableSystem={false}
         >
           {children}
-          <ThemeToggle />
           <TailwindIndicator />
         </ThemeProvider>
       </body>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Icons } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ export function Header() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <a
             href={siteConfig.links.npm}
             target="_blank"

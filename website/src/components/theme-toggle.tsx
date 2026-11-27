@@ -5,19 +5,18 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme();
-  // Don't show in production
-  if (process.env.NODE_ENV === "production") return null;
+  const { setTheme, resolvedTheme } = useTheme();
+
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="fixed bottom-1 left-1 z-50"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      className="h-8 w-8 rounded-lg"
+      onClick={() => setTheme(resolvedTheme === "light" ? "dark" : "light")}
+      aria-label="Toggle theme"
     >
-      <Sun className="h-[1.5rem] w-[1.3rem] dark:hidden" />
-      <Moon className="hidden h-5 w-5 dark:block" />
-      <span className="sr-only">Toggle theme</span>
+      <Sun className="h-4 w-4 dark:hidden" />
+      <Moon className="hidden h-4 w-4 dark:block" />
     </Button>
   );
 }

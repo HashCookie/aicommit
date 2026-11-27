@@ -51,19 +51,19 @@ export const siteConfig = {
     {
       name: "Interactive CLI & Setup",
       description:
-        "Run `aicommit setup` once to configure provider, key, and language. Accept, edit, or regenerate with automatic deduplication.",
+        "Run aicommit setup once to configure provider, key, and language. Accept, edit, or regenerate with automatic deduplication.",
       icon: <TerminalIcon className="h-6 w-6" />,
     },
     {
       name: "Branch Name Generator",
       description:
-        "Run `aicommit branch` to generate a clean slug from your diff, pick a prefix, and auto-checkout in one step.",
+        "Run aicommit branch to generate a clean slug from your diff, pick a prefix, and auto-checkout in one step.",
       icon: <GitBranchIcon className="h-6 w-6" />,
     },
     {
       name: "Multilingual Commits",
       description:
-        "English by default, or set `AI_LOCALE=zh` for English Conventional Commit types paired with concise Chinese descriptions.",
+        "English by default, or set AI_LOCALE=zh for English Conventional Commit types paired with concise Chinese descriptions.",
       icon: <GlobeIcon className="h-6 w-6" />,
     },
     {
