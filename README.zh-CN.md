@@ -1,21 +1,37 @@
 <div align="center">
   <h1>aicommit</h1>
-  <p>根据 Git 暂存区变更，用 AI 生成 Conventional Commits 提交信息和分支名的轻量 CLI。</p>
   <p>
-    <a href="https://www.npmjs.com/package/unique-aicommit"><img src="https://img.shields.io/npm/v/unique-aicommit" alt="npm version" /></a>
-    <a href="https://www.npmjs.com/package/unique-aicommit"><img src="https://img.shields.io/npm/dt/unique-aicommit" alt="npm downloads" /></a>
-    <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="node >= 18" />
+    根据 Git 暂存区变更，用 AI 生成 Conventional Commits 提交信息和分支名的轻量
+    CLI。
+  </p>
+  <p>
+    <a href="https://www.npmjs.com/package/unique-aicommit"
+      ><img
+        src="https://img.shields.io/npm/v/unique-aicommit"
+        alt="npm version"
+      ></a
+    >
+    <a href="https://www.npmjs.com/package/unique-aicommit"
+      ><img
+        src="https://img.shields.io/npm/dt/unique-aicommit"
+        alt="npm downloads"
+      ></a
+    >
+    <img
+      src="https://img.shields.io/badge/node-%3E%3D20-brightgreen"
+      alt="node >= 20"
+    >
   </p>
   <p><a href="./README.md">English</a> | <strong>简体中文</strong></p>
 </div>
 
 <div align="center">
-  <img src="public/aicommit.jpg" alt="aicommit demo" width="720" />
+  <img src="public/aicommit.jpg" alt="aicommit demo" width="720">
 </div>
 
 ## 快速开始
 
-需要 Node.js >= 18。
+需要 Node.js >= 20。
 
 ```sh
 # 1. 全局安装
@@ -43,6 +59,7 @@ aicommit -y
 ```
 
 交互菜单支持：
+
 - **Accept**：直接执行 `git commit`
 - **Edit**：在生成结果基础上编辑后提交
 - **Regenerate**：重新生成一条
@@ -62,17 +79,17 @@ aicommit b
 
 未在 `~/.aicommitrc` 中设置 Key 时，会自动读取对应环境变量；未设置 `AI_PROVIDER` 时会自动识别已配置 Key 的 Provider。
 
-| Provider | 默认模型 | 配置项 | 环境变量 | 获取 Key |
-|----------|----------|--------|----------|----------|
-| `deepseek` | `deepseek-chat` | `DEEPSEEK_KEY` | `DEEPSEEK_API_KEY` | [DeepSeek](https://platform.deepseek.com/) |
-| `moonshot` | `moonshot-v1-8k` | `MOONSHOT_KEY` | `MOONSHOT_API_KEY` | [Moonshot](https://platform.moonshot.cn/) |
-| `siliconflow` | `Qwen/Qwen2.5-7B-Instruct` | `SILICONFLOW_KEY` | `SILICONFLOW_API_KEY` | [SiliconFlow](https://cloud.siliconflow.cn/) |
-| `openai` | `gpt-4o-mini` | `OPENAI_KEY` | `OPENAI_API_KEY` | [OpenAI](https://platform.openai.com/api-keys) |
-| `openrouter` | `openai/gpt-4o-mini` | `OPENROUTER_KEY` | `OPENROUTER_API_KEY` | [OpenRouter](https://openrouter.ai/keys) |
-| `gemini` | `gemini-2.0-flash` | `GEMINI_KEY` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
-| `groq` | `llama-3.3-70b-versatile` | `GROQ_KEY` | `GROQ_API_KEY` | [Groq](https://console.groq.com/keys) |
-| `anthropic` | `claude-3-5-haiku-latest` | `ANTHROPIC_KEY` | `ANTHROPIC_API_KEY` | [Anthropic](https://console.anthropic.com/settings/keys) |
-| `ollama` | `llama3.2` | 无需 Key | - | [Ollama](https://ollama.com/) |
+| Provider      | 默认模型                   | 配置项            | 环境变量                            | 获取 Key                                                 |
+| ------------- | -------------------------- | ----------------- | ----------------------------------- | -------------------------------------------------------- |
+| `deepseek`    | `deepseek-chat`            | `DEEPSEEK_KEY`    | `DEEPSEEK_API_KEY`                  | [DeepSeek](https://platform.deepseek.com/)               |
+| `moonshot`    | `moonshot-v1-8k`           | `MOONSHOT_KEY`    | `MOONSHOT_API_KEY`                  | [Moonshot](https://platform.moonshot.cn/)                |
+| `siliconflow` | `Qwen/Qwen2.5-7B-Instruct` | `SILICONFLOW_KEY` | `SILICONFLOW_API_KEY`               | [SiliconFlow](https://cloud.siliconflow.cn/)             |
+| `openai`      | `gpt-4o-mini`              | `OPENAI_KEY`      | `OPENAI_API_KEY`                    | [OpenAI](https://platform.openai.com/api-keys)           |
+| `openrouter`  | `openai/gpt-4o-mini`       | `OPENROUTER_KEY`  | `OPENROUTER_API_KEY`                | [OpenRouter](https://openrouter.ai/keys)                 |
+| `gemini`      | `gemini-2.0-flash`         | `GEMINI_KEY`      | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey)   |
+| `groq`        | `llama-3.3-70b-versatile`  | `GROQ_KEY`        | `GROQ_API_KEY`                      | [Groq](https://console.groq.com/keys)                    |
+| `anthropic`   | `claude-3-5-haiku-latest`  | `ANTHROPIC_KEY`   | `ANTHROPIC_API_KEY`                 | [Anthropic](https://console.anthropic.com/settings/keys) |
+| `ollama`      | `llama3.2`                 | 无需 Key          | -                                   | [Ollama](https://ollama.com/)                            |
 
 ### 使用本地 Ollama（无需 API Key）
 
@@ -100,6 +117,7 @@ aicommit config unset <key>              # 删除配置
 ```
 
 常用配置项：
+
 - `AI_PROVIDER`：当前 Provider（切换时会自动更新为该 Provider 的默认模型）
 - `AI_MODEL`：覆盖默认模型名
 - `AI_BASE_URL`：覆盖默认接口地址

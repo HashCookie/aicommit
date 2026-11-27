@@ -1,35 +1,35 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { execFileSync } from "child_process";
 
 import {
+  getAIModel,
+  getAIProvider,
+  getApiKey,
+  getConfigValue,
+  listConfig,
+  maskSecret,
   parseKeyValue,
   setConfig,
   unsetConfig,
-  getConfigValue,
-  getAIProvider,
-  getApiKey,
-  getAIModel,
-  maskSecret,
-  listConfig,
 } from "../src/config.js";
 import {
-  cleanCommitMessage,
-  formatBranchName,
-  buildMessages,
-  chatCompletion,
-} from "../src/providers.js";
-import {
-  isGitRepository,
-  hasStagedChanges,
-  parseNameStatus,
-  getStagedDiff,
   commitChanges,
   createAndCheckoutBranch,
+  getStagedDiff,
+  hasStagedChanges,
+  isGitRepository,
+  parseNameStatus,
 } from "../src/git.js";
+import {
+  buildMessages,
+  chatCompletion,
+  cleanCommitMessage,
+  formatBranchName,
+} from "../src/providers.js";
 
 function withTempConfig(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "aicommit-cfg-"));
@@ -73,8 +73,10 @@ test("config read/write handles missing file, preserves key case, and auto-detec
     assert.equal(getApiKey(), "sk-MixedCaseToken1234");
 
     // File permissions should be 0600 on POSIX
-    const mode = fs.statSync(cfgPath).mode & 0o777;
-    assert.equal(mode, 0o600);
+    if (process.platform !== "win32") {
+      const mode = fs.statSync(cfgPath).mode % 0o1000;
+      assert.equal(mode, 0o600);
+    }
 
     // Setting AI_PROVIDER updates default model
     setConfig("ai_provider", "moonshot");
@@ -82,7 +84,10 @@ test("config read/write handles missing file, preserves key case, and auto-detec
     assert.equal(getAIModel(), "moonshot-v1-8k");
 
     // Invalid provider throws
-    assert.throws(() => setConfig("AI_PROVIDER", "unknown"), /Unsupported AI_PROVIDER/);
+    assert.throws(
+      () => setConfig("AI_PROVIDER", "unknown"),
+      /Unsupported AI_PROVIDER/u
+    );
 
     // Masking and unset
     assert.equal(maskSecret("sk-1234567890abcd"), "sk-1...abcd");
@@ -95,11 +100,13 @@ test("config read/write handles missing file, preserves key case, and auto-detec
 
 test("cleanCommitMessage and formatBranchName sanitize model outputs", () => {
   assert.equal(
-    cleanCommitMessage("```\n\"feat: add retry logic.\"\n```"),
+    cleanCommitMessage('```\n"feat: add retry logic."\n```'),
     "feat: add retry logic"
   );
   assert.equal(
-    cleanCommitMessage("<think>internal reasoning</think>\nfix: handle empty diff\n\nExtra explanation"),
+    cleanCommitMessage(
+      "<think>internal reasoning</think>\nfix: handle empty diff\n\nExtra explanation"
+    ),
     "fix: handle empty diff"
   );
   assert.equal(
@@ -114,7 +121,7 @@ test("cleanCommitMessage and formatBranchName sanitize model outputs", () => {
 
 test("buildMessages supports locale and regenerate deduplication", () => {
   const zhMsgs = buildMessages("diff", "commit", { locale: "zh" });
-  assert.match(zhMsgs[0].content, /Simplified Chinese/);
+  assert.match(zhMsgs[0].content, /Simplified Chinese/u);
 
   const regenMsgs = buildMessages("diff", "commit", {
     locale: "en",
@@ -123,8 +130,8 @@ test("buildMessages supports locale and regenerate deduplication", () => {
   assert.equal(regenMsgs.length, 4);
   assert.equal(regenMsgs[2].role, "assistant");
   assert.equal(regenMsgs[2].content, "refactor: second try");
-  assert.match(regenMsgs[3].content, /fix: first try/);
-  assert.match(regenMsgs[3].content, /refactor: second try/);
+  assert.match(regenMsgs[3].content, /fix: first try/u);
+  assert.match(regenMsgs[3].content, /refactor: second try/u);
 });
 
 test("chatCompletion sends OpenAI-compatible payload and handles HTTP errors", async () => {
@@ -168,7 +175,7 @@ test("chatCompletion sends OpenAI-compatible payload and handles HTTP errors", a
         messages: [],
         fetchImpl: errorFetch,
       }),
-    /401.*Invalid API key/
+    /401.*Invalid API key/u
   );
 });
 
@@ -230,7 +237,7 @@ test("config falls back to environment variables and handles keyless ollama", ()
     try {
       assert.equal(getAIProvider(), "groq");
       assert.equal(getApiKey("groq"), "gsk_EnvSecret123456");
-      assert.match(listConfig().GROQ_KEY, /env: GROQ_API_KEY/);
+      assert.match(listConfig().GROQ_KEY, /env: GROQ_API_KEY/u);
 
       setConfig("AI_PROVIDER", "ollama");
       assert.equal(getAIProvider(), "ollama");
@@ -265,7 +272,13 @@ test("git operations work safely in paths with spaces and special characters", a
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "aicommit repo test "));
   try {
     execFileSync("git", ["-C", dir, "init", "-b", "main"]);
-    execFileSync("git", ["-C", dir, "config", "user.email", "test@example.com"]);
+    execFileSync("git", [
+      "-C",
+      dir,
+      "config",
+      "user.email",
+      "test@example.com",
+    ]);
     execFileSync("git", ["-C", dir, "config", "user.name", "Test User"]);
 
     assert.equal(await isGitRepository(dir), true);
@@ -277,23 +290,91 @@ test("git operations work safely in paths with spaces and special characters", a
 
     assert.equal(await hasStagedChanges(dir), true);
     const diff = await getStagedDiff(dir);
-    assert.match(diff, /hello\.js/);
-    assert.doesNotMatch(diff, /package-lock\.json/);
+    assert.match(diff, /hello\.js/u);
+    assert.doesNotMatch(diff, /package-lock\.json/u);
 
     // Commit message with single/double quotes and shell metacharacters
     const msg = `feat: handle "quotes" & 'apostrophes' $(noop)`;
     await commitChanges(msg, dir);
-    const logMsg = execFileSync("git", ["-C", dir, "log", "-1", "--pretty=%s"], {
-      encoding: "utf8",
-    }).trim();
+    const logMsg = execFileSync(
+      "git",
+      ["-C", dir, "log", "-1", "--pretty=%s"],
+      {
+        encoding: "utf8",
+      }
+    ).trim();
     assert.equal(logMsg, msg);
 
     await createAndCheckoutBranch("feat/safe-branch", dir);
-    const currentBranch = execFileSync("git", ["-C", dir, "branch", "--show-current"], {
-      encoding: "utf8",
-    }).trim();
+    const currentBranch = execFileSync(
+      "git",
+      ["-C", dir, "branch", "--show-current"],
+      {
+        encoding: "utf8",
+      }
+    ).trim();
     assert.equal(currentBranch, "feat/safe-branch");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("CLI entry handles version, help, config CRUD, and unknown commands", () => {
+  const cliPath = path.resolve("src/index.js");
+
+  withTempConfig((cfgPath) => {
+    const env = { ...process.env, AICOMMIT_CONFIG_PATH: cfgPath };
+
+    const versionOut = execFileSync(process.execPath, [cliPath, "-v"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.match(versionOut, /^aicommit v\d+\.\d+\.\d+/u);
+
+    const helpOut = execFileSync(process.execPath, [cliPath, "--help"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.match(helpOut, /Usage:/u);
+    assert.match(helpOut, /Supported providers:/u);
+
+    execFileSync(
+      process.execPath,
+      [cliPath, "config", "set", "SILICONFLOW_KEY=sk-CliTest1234"],
+      { encoding: "utf8", env }
+    );
+
+    const getOut = execFileSync(
+      process.execPath,
+      [cliPath, "config", "get", "SILICONFLOW_KEY"],
+      { encoding: "utf8", env }
+    );
+    assert.match(getOut, /sk-CliTest1234/u);
+
+    const listOut = execFileSync(
+      process.execPath,
+      [cliPath, "config", "list"],
+      {
+        encoding: "utf8",
+        env,
+      }
+    );
+    assert.match(listOut, /sk-C\.\.\.1234/u);
+
+    execFileSync(
+      process.execPath,
+      [cliPath, "config", "unset", "SILICONFLOW_KEY"],
+      { encoding: "utf8", env }
+    );
+
+    assert.throws(
+      () =>
+        execFileSync(process.execPath, [cliPath, "unknown-command"], {
+          encoding: "utf8",
+          stdio: "pipe",
+          env,
+        }),
+      (err) => err.status === 1 && /Unknown command/u.test(err.stderr)
+    );
+  });
 });

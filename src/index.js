@@ -4,18 +4,18 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
+  getAIProvider,
+  getApiKey,
+  getConfigValue,
+  getProviderMeta,
+  listConfig,
   PROVIDERS,
   parseKeyValue,
   setConfig,
   unsetConfig,
-  getConfigValue,
-  getAIProvider,
-  getProviderMeta,
-  getApiKey,
-  listConfig,
 } from "./config.js";
-import { isGitRepository, hasStagedChanges, getStagedDiff } from "./git.js";
-import { promptCommit, promptBranchCreation } from "./prompt.js";
+import { getStagedDiff, hasStagedChanges, isGitRepository } from "./git.js";
+import { promptBranchCreation, promptCommit } from "./prompt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { version: VERSION } = JSON.parse(
@@ -57,7 +57,9 @@ function handleConfig(subcommand, rawArg) {
         process.exit(1);
       }
       const value = getConfigValue(rawArg);
-      console.log(value !== undefined ? `${rawArg}: ${value}` : `${rawArg}: Not set`);
+      console.log(
+        value === undefined ? `${rawArg}: Not set` : `${rawArg}: ${value}`
+      );
       break;
     }
     case "unset": {
