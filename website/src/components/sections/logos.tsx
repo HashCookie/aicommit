@@ -18,16 +18,18 @@ export function Logos() {
   return (
     <Section id="providers" title="Supported Providers">
       <div className="border-x border-t">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-9">
-          {providers.map((p) => (
+        <div className="grid grid-cols-1 sm:grid-cols-3">
+          {providers.map((p, idx) => (
             <div
               key={p.name}
-              className="flex flex-col items-center justify-center p-5 border-r border-b last:border-r-0 text-center hover:bg-muted/40 transition-colors"
+              className={`flex flex-col items-center justify-center py-6 px-4 text-center hover:bg-muted/40 transition-colors border-b ${
+                idx >= 6 ? "sm:border-b-0" : ""
+              } ${(idx + 1) % 3 !== 0 ? "sm:border-r" : ""}`}
             >
               <span className="font-mono text-sm font-semibold text-foreground">
                 {p.name}
               </span>
-              <span className="mt-1 text-[11px] text-muted-foreground font-mono">
+              <span className="mt-1 text-xs text-muted-foreground font-mono">
                 {p.model}
               </span>
             </div>

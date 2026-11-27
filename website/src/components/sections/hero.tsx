@@ -72,9 +72,9 @@ function HeroCTA() {
   };
 
   return (
-    <div className="relative mt-6 w-full">
+    <div className="relative mt-6 w-full min-w-0">
       <motion.div
-        className="flex w-full max-w-xl flex-col items-stretch gap-3 sm:flex-row sm:items-center"
+        className="flex w-full flex-wrap items-center gap-3"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.7, ease }}
@@ -82,11 +82,11 @@ function HeroCTA() {
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center justify-between gap-3 rounded-lg border bg-muted/60 px-4 py-2.5 font-mono text-sm text-foreground hover:bg-muted transition-colors"
+          className="flex max-w-full items-center justify-between gap-2.5 rounded-lg border bg-muted/60 px-3.5 h-10 font-mono text-xs sm:text-sm text-foreground hover:bg-muted transition-colors"
         >
           <span className="flex items-center gap-2 truncate">
             <TerminalIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span>{siteConfig.installCommand}</span>
+            <span className="truncate">{siteConfig.installCommand}</span>
           </span>
           {copied ? (
             <CheckIcon className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -101,7 +101,7 @@ function HeroCTA() {
           rel="noreferrer"
           className={cn(
             buttonVariants({ variant: "default" }),
-            "text-background flex gap-2 rounded-lg py-5"
+            "text-background flex gap-2 rounded-lg h-10 px-4 shrink-0"
           )}
         >
           <Icons.github className="h-4 w-4" />
@@ -178,12 +178,12 @@ export function Hero() {
   return (
     <Section id="hero">
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-10 items-center w-full p-6 lg:p-12 border-x overflow-hidden">
-        <div className="flex flex-col justify-start items-start">
+        <div className="flex flex-col justify-start items-start min-w-0">
           <HeroPill />
           <HeroTitles />
           <HeroCTA />
         </div>
-        <div className="w-full">
+        <div className="w-full min-w-0">
           <TerminalPreview />
         </div>
       </div>
