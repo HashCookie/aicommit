@@ -18,8 +18,8 @@
       ></a
     >
     <img
-      src="https://img.shields.io/badge/node-%3E%3D18-brightgreen"
-      alt="node >= 18"
+      src="https://img.shields.io/badge/node-%3E%3D20-brightgreen"
+      alt="node >= 20"
     >
   </p>
   <p><a href="./README.md">English</a> | <strong>简体中文</strong></p>
@@ -31,7 +31,7 @@
 
 ## 快速开始
 
-需要 Node.js >= 18。
+需要 Node.js >= 20。
 
 ```sh
 # 1. 全局安装

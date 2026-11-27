@@ -18,8 +18,8 @@
       ></a
     >
     <img
-      src="https://img.shields.io/badge/node-%3E%3D18-brightgreen"
-      alt="node >= 18"
+      src="https://img.shields.io/badge/node-%3E%3D20-brightgreen"
+      alt="node >= 20"
     >
   </p>
   <p><strong>English</strong> | <a href="./README.zh-CN.md">简体中文</a></p>
@@ -31,7 +31,7 @@
 
 ## Quick Start
 
-Requires Node.js >= 18.
+Requires Node.js >= 20.
 
 ```sh
 # 1. Install globally
