@@ -10,13 +10,22 @@
   "bin": {
     "aicommit": "./src/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HashCookie/aicommit.git"
+  },
+  "homepage": "https://github.com/HashCookie/aicommit#readme",
+  "bugs": {
+    "url": "https://github.com/HashCookie/aicommit/issues"
+  },
   "dependencies": {
     "inquirer": "^8.2.6"
   },
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test",
-    "publish-package": "npm version patch && npm publish"
+    "prepublishOnly": "npm test",
+    "release": "npm version patch && git push --follow-tags"
   },
   "author": "HashCookie",
   "license": "ISC",
