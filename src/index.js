@@ -14,8 +14,17 @@ import {
   setConfig,
   unsetConfig,
 } from "./config.js";
-import { getStagedDiff, hasStagedChanges, isGitRepository } from "./git.js";
-import { promptBranchCreation, promptCommit } from "./prompt.js";
+import {
+  getStagedDiff,
+  hasStagedChanges,
+  isGitRepository,
+  stageTrackedChanges,
+} from "./git.js";
+import {
+  promptBranchCreation,
+  promptCommit,
+  runSetupWizard,
+} from "./prompt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { version: VERSION } = JSON.parse(
@@ -27,8 +36,9 @@ function printHelp() {
   console.log(`aicommit v${VERSION}
 
 Usage:
-  aicommit [-y | --yes]        Generate a commit message from staged changes (-y skips prompt)
-  aicommit branch | b          Generate and checkout a branch from staged changes
+  aicommit [options]           Generate a commit message from staged changes
+  aicommit branch | b [opts]   Generate and checkout a branch from staged changes
+  aicommit setup               Interactive setup wizard for provider, key, and language
   aicommit config set <k>=<v>  Set a config value (AI_PROVIDER, AI_MODEL, AI_BASE_URL, AI_LOCALE, <PROVIDER>_KEY)
   aicommit config get <key>    Get a config value
   aicommit config unset <key>  Remove a config value
@@ -36,7 +46,37 @@ Usage:
   aicommit --version | -v      Show version
   aicommit --help | -h         Show help
 
+Options:
+  -a, --all                    Stage modified tracked files before generating (git add -u)
+  -y, --yes                    Skip confirmation prompt and commit immediately
+  -c, --context <text>         Provide extra context/hint for the AI
+
 Supported providers: ${providers}`);
+}
+
+function parseFlags(tokens) {
+  const flags = { all: false, yes: false, context: "" };
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (token === "-a" || token === "--all") {
+      flags.all = true;
+    } else if (token === "-y" || token === "--yes") {
+      flags.yes = true;
+    } else if (token === "-ay" || token === "-ya") {
+      flags.all = true;
+      flags.yes = true;
+    } else if (token === "-c" || token === "--context") {
+      const value = tokens[i + 1];
+      if (!value || value.startsWith("-")) {
+        throw new Error(`Option "${token}" requires a value.`);
+      }
+      flags.context = value;
+      i += 1;
+    } else {
+      throw new Error(`Unknown command or option: "${token}"`);
+    }
+  }
+  return flags;
 }
 
 function handleConfig(subcommand, rawArg) {
@@ -85,7 +125,7 @@ function handleConfig(subcommand, rawArg) {
   }
 }
 
-async function ensureReadyAndGetDiff() {
+async function ensureReadyAndGetDiff({ stageAll = false } = {}) {
   const provider = getAIProvider();
   const meta = getProviderMeta(provider);
   const apiKey = getApiKey(provider);
@@ -94,7 +134,7 @@ async function ensureReadyAndGetDiff() {
       ? ` or export ${meta.envKeys[0]}=<your_key>`
       : "";
     console.error(
-      `API key not set for "${provider}". Run:\n  aicommit config set ${meta.apiKeyName}=<your_key>${envHint}`
+      `API key not set for "${provider}". Run 'aicommit setup' or:\n  aicommit config set ${meta.apiKeyName}=<your_key>${envHint}`
     );
     process.exit(1);
   }
@@ -104,14 +144,22 @@ async function ensureReadyAndGetDiff() {
     process.exit(1);
   }
 
+  if (stageAll) {
+    await stageTrackedChanges();
+  }
+
   if (!(await hasStagedChanges())) {
-    console.log("No staged changes found. Stage files with 'git add' first.");
+    console.log(
+      "No staged changes found. Stage files with 'git add' or pass '-a'."
+    );
     return null;
   }
 
   const diff = await getStagedDiff();
   if (!diff) {
-    console.log("Only ignored lockfiles are staged. Nothing to summarize.");
+    console.log(
+      "Only ignored lockfiles or generated assets are staged. Nothing to summarize."
+    );
     return null;
   }
 
@@ -132,34 +180,40 @@ async function main() {
     return;
   }
 
+  if (command === "setup") {
+    await runSetupWizard();
+    return;
+  }
+
   if (command === "config") {
     handleConfig(rest[0], rest[1]);
     return;
   }
 
   if (command === "branch" || command === "b") {
-    const diff = await ensureReadyAndGetDiff();
+    const flags = parseFlags(rest);
+    const diff = await ensureReadyAndGetDiff({ stageAll: flags.all });
     if (diff) {
-      await promptBranchCreation(diff);
+      await promptBranchCreation(diff, { context: flags.context });
     }
     return;
   }
 
-  if (!command || command === "-y" || command === "--yes") {
-    const autoAccept = command === "-y" || command === "--yes";
-    const diff = await ensureReadyAndGetDiff();
-    if (diff) {
-      await promptCommit(diff, { autoAccept });
-    }
-    return;
+  const flags = parseFlags(args);
+  const diff = await ensureReadyAndGetDiff({ stageAll: flags.all });
+  if (diff) {
+    await promptCommit(diff, {
+      autoAccept: flags.yes,
+      context: flags.context,
+    });
   }
-
-  console.error(`Unknown command: "${command}"\n`);
-  printHelp();
-  process.exit(1);
 }
 
 main().catch((error) => {
   console.error(`Error: ${error.message}`);
+  if (error.message.startsWith("Unknown command")) {
+    console.log("");
+    printHelp();
+  }
   process.exit(1);
 });

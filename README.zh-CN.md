@@ -37,9 +37,8 @@
 # 1. 全局安装
 npm install -g unique-aicommit
 
-# 2. 配置任意支持的 Provider 和 API Key（也可直接用环境变量）
-aicommit config set AI_PROVIDER=deepseek
-aicommit config set DEEPSEEK_KEY=<your_api_key>
+# 2. 运行交互式配置向导（也可手动 config set 或用环境变量）
+aicommit setup
 
 # 3. 暂存更改并生成提交信息
 git add .
@@ -54,8 +53,11 @@ aicommit
 git add <files...>
 aicommit
 
-# 跳过交互确认直接提交
-aicommit -y
+# 自动暂存已跟踪文件的修改并直接提交
+aicommit -a -y
+
+# 给 AI 补充背景提示
+aicommit -c "修复 Safari 日期解析兼容问题"
 ```
 
 交互菜单支持：

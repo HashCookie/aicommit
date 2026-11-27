@@ -37,9 +37,8 @@ Requires Node.js >= 20.
 # 1. Install globally
 npm install -g unique-aicommit
 
-# 2. Configure a provider and API key (or use environment variables)
-aicommit config set AI_PROVIDER=deepseek
-aicommit config set DEEPSEEK_KEY=<your_api_key>
+# 2. Run interactive setup (or configure manually / via env vars)
+aicommit setup
 
 # 3. Stage your changes and generate a commit message
 git add .
@@ -54,8 +53,11 @@ aicommit
 git add <files...>
 aicommit
 
-# Skip confirmation and commit immediately
-aicommit -y
+# Stage modified tracked files and commit immediately
+aicommit -a -y
+
+# Provide extra context for the AI
+aicommit -c "fix Safari date parsing"
 ```
 
 Interactive actions:

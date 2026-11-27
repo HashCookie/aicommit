@@ -8,6 +8,9 @@ import {
   getConfigValue,
   getLocale,
   getProviderMeta,
+  listConfig,
+  PROVIDERS,
+  setConfig,
 } from "./config.js";
 import { commitChanges, createAndCheckoutBranch } from "./git.js";
 import {
@@ -68,6 +71,7 @@ async function generateFromDiff(diff, type, options = {}) {
   const messages = buildMessages(truncateDiff(diff), type, {
     locale,
     previousSuggestions: options.previousSuggestions,
+    context: options.context,
   });
 
   const raw = await chatCompletion({
@@ -94,10 +98,72 @@ function isPromptCancelled(error) {
   return error?.name === "ExitPromptError";
 }
 
-async function promptCommit(diff, { autoAccept = false } = {}) {
+async function runSetupWizard() {
+  try {
+    const currentProvider = getAIProvider();
+    const providerChoices = Object.entries(PROVIDERS).map(([name, info]) => ({
+      name: `${name} (${info.defaultModel})`,
+      value: name,
+    }));
+
+    const provider = await select({
+      message: "Select AI provider:",
+      choices: providerChoices,
+      default: currentProvider,
+    });
+
+    setConfig("AI_PROVIDER", provider);
+    const meta = getProviderMeta(provider);
+
+    if (meta.requiresApiKey !== false) {
+      const existingKey = getApiKey(provider);
+      const apiKey = await input({
+        message: existingKey
+          ? `Enter ${meta.apiKeyName} (leave blank to keep existing):`
+          : `Enter ${meta.apiKeyName}:`,
+        validate: (val) =>
+          val.trim() || existingKey ? true : `${meta.apiKeyName} is required.`,
+      });
+      if (apiKey.trim()) {
+        setConfig(meta.apiKeyName, apiKey.trim());
+      }
+    }
+
+    const model = await input({
+      message: "Model name:",
+      default: meta.defaultModel,
+    });
+    if (model.trim() && model.trim() !== meta.defaultModel) {
+      setConfig("AI_MODEL", model.trim());
+    }
+
+    const locale = await select({
+      message: "Commit message language:",
+      choices: [
+        { name: "English (en)", value: "en" },
+        { name: "Simplified Chinese (zh)", value: "zh" },
+      ],
+      default: getLocale() === "zh" ? "zh" : "en",
+    });
+    setConfig("AI_LOCALE", locale);
+
+    console.log("\nSetup complete. Active configuration:");
+    for (const [key, value] of Object.entries(listConfig())) {
+      console.log(`  ${key}: ${value}`);
+    }
+  } catch (error) {
+    if (isPromptCancelled(error)) {
+      console.log("\nSetup cancelled.");
+      return;
+    }
+    throw error;
+  }
+}
+
+async function promptCommit(diff, { autoAccept = false, context = "" } = {}) {
   const previousSuggestions = [];
   let commitMessage = await withSpinner("Generating commit message...", () =>
-    generateCommitMessage(diff)
+    generateCommitMessage(diff, { context })
   );
 
   if (autoAccept) {
@@ -144,7 +210,7 @@ async function promptCommit(diff, { autoAccept = false } = {}) {
         previousSuggestions.push(commitMessage);
         commitMessage = await withSpinner(
           "Regenerating commit message...",
-          () => generateCommitMessage(diff, { previousSuggestions })
+          () => generateCommitMessage(diff, { previousSuggestions, context })
         );
         continue;
       }
@@ -163,10 +229,10 @@ async function promptCommit(diff, { autoAccept = false } = {}) {
   }
 }
 
-async function promptBranchCreation(diff) {
+async function promptBranchCreation(diff, { context = "" } = {}) {
   const previousSuggestions = [];
   let slug = await withSpinner("Generating branch name...", () =>
-    generateBranchName(diff)
+    generateBranchName(diff, { context })
   );
 
   try {
@@ -209,7 +275,7 @@ async function promptBranchCreation(diff) {
       if (action === "Regenerate") {
         previousSuggestions.push(slug);
         slug = await withSpinner("Regenerating branch name...", () =>
-          generateBranchName(diff, { previousSuggestions })
+          generateBranchName(diff, { previousSuggestions, context })
         );
         continue;
       }
@@ -233,5 +299,6 @@ export {
   generateCommitMessage,
   promptBranchCreation,
   promptCommit,
+  runSetupWizard,
   truncateDiff,
 };
