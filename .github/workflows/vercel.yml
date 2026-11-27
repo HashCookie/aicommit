@@ -1,0 +1,62 @@
+# Deploys website/ with the Vercel CLI.
+# Leave the three secrets unset if the Vercel Git integration already
+# deploys this repository, so this workflow skips and does not deploy twice.
+
+name: Deploy Website to Vercel
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "website/**"
+      - ".github/workflows/vercel.yml"
+  pull_request:
+    paths:
+      - "website/**"
+      - ".github/workflows/vercel.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Vercel credentials
+        id: creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped Vercel deploy. Add VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID, or connect the repo in the Vercel dashboard with Root Directory set to website."
+          fi
+
+      - name: Install Vercel CLI
+        if: steps.creds.outputs.ready == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        if: steps.creds.outputs.ready == 'true'
+        working-directory: website
+        run: vercel pull --yes --environment=${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        if: steps.creds.outputs.ready == 'true'
+        working-directory: website
+        run: vercel build ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        if: steps.creds.outputs.ready == 'true'
+        working-directory: website
+        run: vercel deploy --prebuilt ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}

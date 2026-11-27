@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const isVercel = process.env.VERCEL === "1";
+const basePath = isVercel ? "" : process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig = {
-  output: "export",
+  // GitHub Pages needs a static export under /aicommit.
+  // Vercel serves the app from the domain root with the Next.js runtime.
+  ...(isVercel ? {} : { output: "export" }),
   basePath,
   assetPrefix: basePath || undefined,
   images: {
-    unoptimized: true,
+    unoptimized: !isVercel,
   },
   transpilePackages: ["geist"],
 };

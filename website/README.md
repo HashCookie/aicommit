@@ -31,6 +31,30 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This app lives in `website/` inside the aicommit repository. Production deploys from `master`; pull requests get a preview URL.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### Git integration
+
+1. Import `HashCookie/aicommit` at [vercel.com/new](https://vercel.com/new).
+2. Set **Root Directory** to `website`.
+3. Leave Framework Preset as Next.js. Install and build commands come from `vercel.json`.
+4. Optional: set `NEXT_PUBLIC_APP_URL` to the production URL (used for metadata). It defaults to the GitHub Pages address.
+
+Pushes to `master` that touch `website/` deploy automatically. Do not also add the GitHub Actions secrets below, or the site will deploy twice.
+
+### GitHub Actions
+
+`.github/workflows/vercel.yml` deploys with the Vercel CLI when these repository secrets exist:
+
+| Secret | Where to get it |
+| --- | --- |
+| `VERCEL_TOKEN` | [Account tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | `website/.vercel/project.json` after `vercel link` |
+| `VERCEL_PROJECT_ID` | same file |
+
+```sh
+cd website
+vercel link
+```
+
+If the secrets are missing, the workflow skips. GitHub Pages (`.github/workflows/pages.yml`) is unchanged and still publishes the static export to `/aicommit`.
