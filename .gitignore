@@ -1,5 +1,9 @@
 # dependencies
 node_modules/
 
+# website build outputs
+website/.next/
+website/out/
+
 # macOS
 .DS_Store
