@@ -38,7 +38,7 @@ export function Header() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "default" }),
-              "h-8 text-primary-foreground rounded-lg group tracking-tight font-medium flex items-center gap-1.5"
+              "h-8 bg-foreground text-background hover:bg-foreground/90 rounded-lg group tracking-tight font-medium flex items-center gap-1.5"
             )}
           >
             <Icons.github className="h-4 w-4" />

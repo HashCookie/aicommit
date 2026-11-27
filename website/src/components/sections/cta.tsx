@@ -48,7 +48,7 @@ export function CTA() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "default" }),
-              "flex items-center gap-2 text-background rounded-lg py-5"
+              "bg-foreground text-background hover:bg-foreground/90 flex items-center gap-2 rounded-lg h-10 px-4"
             )}
           >
             <Icons.github className="h-4 w-4" />

@@ -1,6 +1,5 @@
 "use client";
 
-import { AuroraText } from "@/components/aurora-text";
 import { Icons } from "@/components/icons";
 import { Section } from "@/components/section";
 import { buttonVariants } from "@/components/ui/button";
@@ -37,14 +36,12 @@ function HeroTitles() {
   return (
     <div className="flex w-full max-w-3xl flex-col overflow-hidden pt-6">
       <motion.h1
-        className="text-left text-4xl font-semibold leading-tight text-foreground sm:text-5xl md:text-6xl tracking-tighter"
-        initial={{ filter: "blur(8px)", opacity: 0, y: 32 }}
+        className="text-left text-4xl font-bold leading-tight text-foreground sm:text-5xl md:text-6xl tracking-tight font-mono"
+        initial={{ filter: "blur(8px)", opacity: 0, y: 24 }}
         animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease }}
+        transition={{ duration: 0.7, ease }}
       >
-        <AuroraText className="leading-normal font-bold font-mono">
-          {siteConfig.hero.title}
-        </AuroraText>
+        {siteConfig.hero.title}
       </motion.h1>
       <motion.p
         className="mt-3 text-left max-w-xl leading-relaxed text-muted-foreground sm:text-lg text-balance"
@@ -82,16 +79,16 @@ function HeroCTA() {
         <button
           type="button"
           onClick={handleCopy}
-          className="flex max-w-full items-center justify-between gap-2.5 rounded-lg border bg-muted/60 px-3.5 h-10 font-mono text-xs sm:text-sm text-foreground hover:bg-muted transition-colors"
+          className="flex max-w-full items-center gap-3 rounded-lg border bg-muted/60 px-3.5 h-10 font-mono text-xs sm:text-[13px] text-foreground hover:bg-muted transition-colors"
         >
-          <span className="flex items-center gap-2 truncate">
-            <TerminalIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="flex items-center gap-2 min-w-0">
+            <TerminalIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="truncate">{siteConfig.installCommand}</span>
           </span>
           {copied ? (
-            <CheckIcon className="h-4 w-4 text-emerald-500 shrink-0" />
+            <CheckIcon className="h-3.5 w-3.5 text-emerald-500 shrink-0 ml-1" />
           ) : (
-            <CopyIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <CopyIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1" />
           )}
         </button>
 
@@ -101,7 +98,7 @@ function HeroCTA() {
           rel="noreferrer"
           className={cn(
             buttonVariants({ variant: "default" }),
-            "text-background flex gap-2 rounded-lg h-10 px-4 shrink-0"
+            "bg-foreground text-background hover:bg-foreground/90 flex gap-2 rounded-lg h-10 px-4 shrink-0"
           )}
         >
           <Icons.github className="h-4 w-4" />
@@ -177,7 +174,7 @@ function TerminalPreview() {
 export function Hero() {
   return (
     <Section id="hero">
-      <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-10 items-center w-full p-6 lg:p-12 border-x overflow-hidden">
+      <div className="relative grid grid-cols-1 lg:grid-cols-[1.08fr_1fr] gap-10 items-center w-full p-6 lg:p-12 border-x overflow-hidden">
         <div className="flex flex-col justify-start items-start min-w-0">
           <HeroPill />
           <HeroTitles />
