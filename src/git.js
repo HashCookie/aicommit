@@ -4,6 +4,7 @@ import { promisify } from "util";
 const execFileAsync = promisify(execFile);
 
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const LINE_SPLIT_RE = /\r?\n/u;
 const IGNORED_FILES = new Set([
   "pnpm-lock.yaml",
   "package-lock.json",
@@ -48,16 +49,15 @@ async function hasStagedChanges(cwd = process.cwd()) {
 function parseNameStatus(stdout) {
   return stdout
     .trim()
-    .split(/\r?\n/)
+    .split(LINE_SPLIT_RE)
     .filter(Boolean)
     .map((line) => {
-      const parts = line.split("\t");
-      const rawStatus = parts[0];
-      const status = rawStatus[0];
-      if ((status === "R" || status === "C") && parts.length >= 3) {
-        return { status, oldFile: parts[1], file: parts[2] };
+      const [rawStatus, firstFile, secondFile] = line.split("\t");
+      const [status] = rawStatus;
+      if ((status === "R" || status === "C") && secondFile) {
+        return { status, oldFile: firstFile, file: secondFile };
       }
-      return { status, file: parts[1] };
+      return { status, file: firstFile };
     })
     .filter(({ file }) => file && !isIgnoredFile(file));
 }
@@ -71,7 +71,10 @@ async function getStagedDiff(cwd = process.cwd()) {
   }
 
   const statFiles = changes.map((c) => c.file);
-  const stat = await runGit(["diff", "--staged", "--stat", "--", ...statFiles], cwd).catch(() => "");
+  const stat = await runGit(
+    ["diff", "--staged", "--stat", "--", ...statFiles],
+    cwd
+  ).catch(() => "");
 
   const diffs = await Promise.all(
     changes.map(async ({ status, oldFile, file }) => {
@@ -105,10 +108,10 @@ async function createAndCheckoutBranch(branchName, cwd = process.cwd()) {
 }
 
 export {
-  isGitRepository,
-  hasStagedChanges,
-  parseNameStatus,
-  getStagedDiff,
   commitChanges,
   createAndCheckoutBranch,
+  getStagedDiff,
+  hasStagedChanges,
+  isGitRepository,
+  parseNameStatus,
 };

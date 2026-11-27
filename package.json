@@ -2,33 +2,28 @@
   "name": "unique-aicommit",
   "version": "1.0.38",
   "description": "A tool to generate standardized commit messages using AI.",
-  "main": "src/index.js",
-  "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
-  "bin": {
-    "aicommit": "src/index.js"
+  "keywords": [
+    "AI",
+    "commit",
+    "git",
+    "automation",
+    "conventional-commits"
+  ],
+  "homepage": "https://github.com/HashCookie/aicommit#readme",
+  "bugs": {
+    "url": "https://github.com/HashCookie/aicommit/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/HashCookie/aicommit.git"
   },
-  "homepage": "https://github.com/HashCookie/aicommit#readme",
-  "bugs": {
-    "url": "https://github.com/HashCookie/aicommit/issues"
-  },
-  "dependencies": {
-    "inquirer": "^8.2.6"
-  },
-  "scripts": {
-    "start": "node src/index.js",
-    "test": "node --test",
-    "prepublishOnly": "npm test",
-    "release": "npm version patch && git push --follow-tags"
-  },
-  "author": "HashCookie",
   "license": "ISC",
+  "author": "HashCookie",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "aicommit": "src/index.js"
+  },
   "files": [
     "src/index.js",
     "src/config.js",
@@ -36,11 +31,23 @@
     "src/providers.js",
     "src/prompt.js"
   ],
-  "keywords": [
-    "AI",
-    "commit",
-    "git",
-    "automation",
-    "conventional-commits"
-  ]
+  "scripts": {
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "prepublishOnly": "npm run check && npm test",
+    "release": "npm version patch && git push --follow-tags",
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@inquirer/input": "^5.2.1",
+    "@inquirer/select": "^5.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
+    "ultracite": "^8.3.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

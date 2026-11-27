@@ -69,11 +69,28 @@ const PROVIDERS = {
 const DEFAULT_PROVIDER = "deepseek";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const ANTHROPIC_VERSION = "2023-06-01";
-const BRANCH_PREFIX_RE = /^(?:feat|fix|docs|chore|refactor|hotfix|bugfix|style|perf|test|build|ci)-/;
+const BRANCH_PREFIX_RE =
+  /^(?:feat|fix|docs|chore|refactor|hotfix|bugfix|style|perf|test|build|ci)-/u;
+const THINK_TAG_RE = /<think>[\s\S]*?<\/think>/giu;
+const FENCE_START_RE = /^```[\w-]*\n?/gu;
+const FENCE_END_RE = /\n?```$/gu;
+const LINE_SPLIT_RE = /\r?\n/u;
+const SURROUNDING_QUOTES_RE = /^["'`]+|["'`]+$/gu;
+const TRAILING_PERIOD_RE = /[.。]+$/u;
+const NON_SLUG_CHARS_RE = /[^a-z0-9\s-]/gu;
+const WHITESPACE_RE = /\s+/gu;
+const MULTI_HYPHEN_RE = /-+/gu;
+const EDGE_HYPHEN_RE = /^-|-$/gu;
+const TRAILING_HYPHEN_RE = /-$/u;
+const TRAILING_SLASH_RE = /\/+$/u;
 
 function getCommitSystemPrompt(locale = "en") {
   const normalized = (locale || "en").toLowerCase();
-  if (normalized === "zh" || normalized === "zh-cn" || normalized === "zh-hans") {
+  if (
+    normalized === "zh" ||
+    normalized === "zh-cn" ||
+    normalized === "zh-hans"
+  ) {
     return `Write a single-line Conventional Commit message for the staged git diff.
 Types (keep <type> in English, choose the most accurate one):
 - feat: new user-facing feature | fix: bug fix | refactor: restructuring or dependency swap without behavior change | docs: docs only | test: tests | perf: performance | style: formatting | build/ci/chore: maintenance
@@ -131,7 +148,7 @@ function buildMessages(diff, type = "commit", options = {}) {
   if (previousSuggestions.length > 0) {
     messages.push({
       role: "assistant",
-      content: previousSuggestions[previousSuggestions.length - 1],
+      content: previousSuggestions.at(-1),
     });
     const list = previousSuggestions.map((s) => `- ${s}`).join("\n");
     messages.push({
@@ -144,38 +161,38 @@ function buildMessages(diff, type = "commit", options = {}) {
 }
 
 function stripThinkingTags(raw) {
-  return raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  return raw.replace(THINK_TAG_RE, "").trim();
 }
 
 function cleanCommitMessage(raw) {
   return (
     stripThinkingTags(raw)
-      .replace(/^```[\w-]*\n?/g, "")
-      .replace(/\n?```$/g, "")
-      .split(/\r?\n/)
+      .replace(FENCE_START_RE, "")
+      .replace(FENCE_END_RE, "")
+      .split(LINE_SPLIT_RE)
       .map((line) => line.trim())
       .find(Boolean)
-      ?.replace(/^["'`]+|["'`]+$/g, "")
-      .replace(/[.。]+$/, "")
+      ?.replace(SURROUNDING_QUOTES_RE, "")
+      .replace(TRAILING_PERIOD_RE, "")
       .trim() ?? ""
   );
 }
 
 function formatBranchName(raw, { stripPrefix = true } = {}) {
   let slug = stripThinkingTags(raw)
-    .replace(/^```[\w-]*\n?/g, "")
-    .replace(/\n?```$/g, "")
+    .replace(FENCE_START_RE, "")
+    .replace(FENCE_END_RE, "")
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(NON_SLUG_CHARS_RE, "")
+    .replace(WHITESPACE_RE, "-")
+    .replace(MULTI_HYPHEN_RE, "-")
+    .replace(EDGE_HYPHEN_RE, "");
 
   if (stripPrefix) {
     slug = slug.replace(BRANCH_PREFIX_RE, "");
   }
 
-  return slug.slice(0, 50).replace(/-$/, "");
+  return slug.slice(0, 50).replace(TRAILING_HYPHEN_RE, "");
 }
 
 async function parseErrorDetail(response) {
@@ -201,7 +218,7 @@ async function chatCompletion({
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const normalizedBase = baseURL.replace(/\/+$/, "");
+    const normalizedBase = baseURL.replace(TRAILING_SLASH_RE, "");
 
     if (protocol === "anthropic") {
       const systemMsg = messages.find((m) => m.role === "system")?.content;
@@ -266,7 +283,9 @@ async function chatCompletion({
     return content.trim();
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error(`API request timed out after ${timeoutMs / 1000}s.`);
+      throw new Error(`API request timed out after ${timeoutMs / 1000}s.`, {
+        cause: error,
+      });
     }
     throw error;
   } finally {
@@ -275,10 +294,10 @@ async function chatCompletion({
 }
 
 export {
-  PROVIDERS,
-  DEFAULT_PROVIDER,
   buildMessages,
-  cleanCommitMessage,
-  formatBranchName,
   chatCompletion,
+  cleanCommitMessage,
+  DEFAULT_PROVIDER,
+  formatBranchName,
+  PROVIDERS,
 };

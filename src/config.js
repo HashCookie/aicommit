@@ -1,10 +1,12 @@
 import fs from "fs";
-import path from "path";
 import os from "os";
-import { PROVIDERS, DEFAULT_PROVIDER } from "./providers.js";
+import path from "path";
+import { DEFAULT_PROVIDER, PROVIDERS } from "./providers.js";
 
 function getConfigFilePath() {
-  return process.env.AICOMMIT_CONFIG_PATH || path.join(os.homedir(), ".aicommitrc");
+  return (
+    process.env.AICOMMIT_CONFIG_PATH || path.join(os.homedir(), ".aicommitrc")
+  );
 }
 
 function normalizeKey(key) {
@@ -21,7 +23,7 @@ function parseKeyValue(input) {
   }
   const key = input.slice(0, eqIndex).trim();
   const value = input.slice(eqIndex + 1).trim();
-  if (!key || !value) {
+  if (!(key && value)) {
     return null;
   }
   return { key, value };
@@ -35,7 +37,10 @@ function readConfig() {
     if (error.code === "ENOENT") {
       return {};
     }
-    throw new Error(`Failed to read config file (${filePath}): ${error.message}`);
+    throw new Error(
+      `Failed to read config file (${filePath}): ${error.message}`,
+      { cause: error }
+    );
   }
 }
 
@@ -105,9 +110,9 @@ function getAIProvider() {
   // If AI_PROVIDER is unset and the default provider has no key,
   // auto-detect the first provider with a configured key (config file first, then env).
   const defaultMeta = PROVIDERS[DEFAULT_PROVIDER];
-  if (!config[defaultMeta.apiKeyName] && !findEnvKey(defaultMeta)) {
-    const fromConfig = Object.entries(PROVIDERS).find(
-      ([, meta]) => Boolean(config[meta.apiKeyName])
+  if (!(config[defaultMeta.apiKeyName] || findEnvKey(defaultMeta))) {
+    const fromConfig = Object.entries(PROVIDERS).find(([, meta]) =>
+      Boolean(config[meta.apiKeyName])
     );
     if (fromConfig) {
       return fromConfig[0];
@@ -166,10 +171,14 @@ function listConfig() {
   const config = readConfig();
   const provider = getAIProvider();
   const meta = getProviderMeta(provider);
-  const apiKeyName = meta.apiKeyName;
+  const { apiKeyName } = meta;
 
   let keyDisplay;
-  if (meta.requiresApiKey === false && !config[apiKeyName] && !findEnvKey(meta)) {
+  if (
+    meta.requiresApiKey === false &&
+    !config[apiKeyName] &&
+    !findEnvKey(meta)
+  ) {
     keyDisplay = "(not required)";
   } else if (config[apiKeyName]) {
     keyDisplay = maskSecret(config[apiKeyName]);
@@ -198,20 +207,20 @@ function listConfig() {
   return result;
 }
 
+export { PROVIDERS } from "./providers.js";
 export {
-  PROVIDERS,
+  getAIModel,
+  getAIProvider,
+  getApiKey,
+  getBaseURL,
+  getConfigValue,
+  getLocale,
+  getProviderMeta,
+  listConfig,
+  maskSecret,
   normalizeKey,
   parseKeyValue,
   readConfig,
   setConfig,
   unsetConfig,
-  getConfigValue,
-  getAIProvider,
-  getProviderMeta,
-  getApiKey,
-  getAIModel,
-  getBaseURL,
-  getLocale,
-  maskSecret,
-  listConfig,
 };

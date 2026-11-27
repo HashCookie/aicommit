@@ -1,20 +1,21 @@
-import inquirer from "inquirer";
+import input from "@inquirer/input";
+import select from "@inquirer/select";
 import {
-  getAIProvider,
-  getProviderMeta,
-  getApiKey,
   getAIModel,
+  getAIProvider,
+  getApiKey,
   getBaseURL,
-  getLocale,
   getConfigValue,
+  getLocale,
+  getProviderMeta,
 } from "./config.js";
+import { commitChanges, createAndCheckoutBranch } from "./git.js";
 import {
   buildMessages,
+  chatCompletion,
   cleanCommitMessage,
   formatBranchName,
-  chatCompletion,
 } from "./providers.js";
-import { commitChanges, createAndCheckoutBranch } from "./git.js";
 
 const DEFAULT_MAX_DIFF_CHARS = 32_000;
 const BRANCH_PREFIXES = ["feat", "fix", "docs", "chore", "refactor", "none"];
@@ -26,7 +27,10 @@ async function withSpinner(label, fn) {
   }
   let idx = 0;
   const timer = setInterval(() => {
-    process.stdout.write(`\r${SPINNER_FRAMES[idx++ % SPINNER_FRAMES.length]} ${label}`);
+    process.stdout.write(
+      `\r${SPINNER_FRAMES[idx % SPINNER_FRAMES.length]} ${label}`
+    );
+    idx += 1;
   }, 80);
   try {
     return await fn();
@@ -78,12 +82,16 @@ async function generateFromDiff(diff, type, options = {}) {
   return type === "branch" ? formatBranchName(raw) : cleanCommitMessage(raw);
 }
 
-async function generateCommitMessage(diff, options = {}) {
-  return await generateFromDiff(diff, "commit", options);
+function generateCommitMessage(diff, options = {}) {
+  return generateFromDiff(diff, "commit", options);
 }
 
-async function generateBranchName(diff, options = {}) {
-  return await generateFromDiff(diff, "branch", options);
+function generateBranchName(diff, options = {}) {
+  return generateFromDiff(diff, "branch", options);
+}
+
+function isPromptCancelled(error) {
+  return error?.name === "ExitPromptError";
 }
 
 async function promptCommit(diff, { autoAccept = false } = {}) {
@@ -102,52 +110,56 @@ async function promptCommit(diff, { autoAccept = false } = {}) {
     return;
   }
 
-  while (true) {
-    if (!commitMessage) {
-      throw new Error("Failed to generate a commit message.");
-    }
-
-    const { action } = await inquirer.prompt([
-      {
-        type: "list",
-        name: "action",
+  try {
+    while (commitMessage) {
+      const action = await select({
         message: `Generated commit message:\n  ${commitMessage}\n\nWhat would you like to do?`,
-        choices: ["Accept", "Edit", "Regenerate", "Cancel"],
-      },
-    ]);
+        choices: [
+          { value: "Accept" },
+          { value: "Edit" },
+          { value: "Regenerate" },
+          { value: "Cancel" },
+        ],
+      });
 
-    if (action === "Accept") {
-      const output = await commitChanges(commitMessage);
-      console.log(output.trim());
-      return;
-    }
+      if (action === "Accept") {
+        const output = await commitChanges(commitMessage);
+        console.log(output.trim());
+        return;
+      }
 
-    if (action === "Edit") {
-      const { editedMessage } = await inquirer.prompt([
-        {
-          type: "input",
-          name: "editedMessage",
+      if (action === "Edit") {
+        const editedMessage = await input({
           message: "Edit the commit message:",
           default: commitMessage,
-          validate: (input) =>
-            input.trim() ? true : "Commit message cannot be empty.",
-        },
-      ]);
-      const output = await commitChanges(editedMessage.trim());
-      console.log(output.trim());
+          validate: (val) =>
+            val.trim() ? true : "Commit message cannot be empty.",
+        });
+        const output = await commitChanges(editedMessage.trim());
+        console.log(output.trim());
+        return;
+      }
+
+      if (action === "Regenerate") {
+        previousSuggestions.push(commitMessage);
+        commitMessage = await withSpinner(
+          "Regenerating commit message...",
+          () => generateCommitMessage(diff, { previousSuggestions })
+        );
+        continue;
+      }
+
+      console.log("Commit cancelled.");
       return;
     }
 
-    if (action === "Regenerate") {
-      previousSuggestions.push(commitMessage);
-      commitMessage = await withSpinner("Regenerating commit message...", () =>
-        generateCommitMessage(diff, { previousSuggestions })
-      );
-      continue;
+    throw new Error("Failed to generate a commit message.");
+  } catch (error) {
+    if (isPromptCancelled(error)) {
+      console.log("\nCommit cancelled.");
+      return;
     }
-
-    console.log("Commit cancelled.");
-    return;
+    throw error;
   }
 }
 
@@ -157,70 +169,69 @@ async function promptBranchCreation(diff) {
     generateBranchName(diff)
   );
 
-  const { prefix } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "prefix",
+  try {
+    const prefix = await select({
       message: "Select branch prefix:",
-      choices: BRANCH_PREFIXES,
-    },
-  ]);
+      choices: BRANCH_PREFIXES.map((value) => ({ value })),
+    });
 
-  while (true) {
-    if (!slug) {
-      throw new Error("Failed to generate a branch name.");
-    }
+    while (slug) {
+      const fullBranchName = prefix === "none" ? slug : `${prefix}/${slug}`;
 
-    const fullBranchName = prefix === "none" ? slug : `${prefix}/${slug}`;
-
-    const { action } = await inquirer.prompt([
-      {
-        type: "list",
-        name: "action",
+      const action = await select({
         message: `Generated branch name:\n  ${fullBranchName}\n\nWhat would you like to do?`,
-        choices: ["Accept", "Edit", "Regenerate", "Cancel"],
-      },
-    ]);
+        choices: [
+          { value: "Accept" },
+          { value: "Edit" },
+          { value: "Regenerate" },
+          { value: "Cancel" },
+        ],
+      });
 
-    if (action === "Accept") {
-      await createAndCheckoutBranch(fullBranchName);
-      console.log(`Branch created and switched to: ${fullBranchName}`);
-      return;
-    }
+      if (action === "Accept") {
+        await createAndCheckoutBranch(fullBranchName);
+        console.log(`Branch created and switched to: ${fullBranchName}`);
+        return;
+      }
 
-    if (action === "Edit") {
-      const { editedName } = await inquirer.prompt([
-        {
-          type: "input",
-          name: "editedName",
+      if (action === "Edit") {
+        const editedName = await input({
           message: "Edit branch name:",
           default: fullBranchName,
-          validate: (input) =>
-            input.trim() ? true : "Branch name cannot be empty.",
-        },
-      ]);
-      await createAndCheckoutBranch(editedName.trim());
-      console.log(`Branch created and switched to: ${editedName.trim()}`);
+          validate: (val) =>
+            val.trim() ? true : "Branch name cannot be empty.",
+        });
+        await createAndCheckoutBranch(editedName.trim());
+        console.log(`Branch created and switched to: ${editedName.trim()}`);
+        return;
+      }
+
+      if (action === "Regenerate") {
+        previousSuggestions.push(slug);
+        slug = await withSpinner("Regenerating branch name...", () =>
+          generateBranchName(diff, { previousSuggestions })
+        );
+        continue;
+      }
+
+      console.log("Branch creation cancelled.");
       return;
     }
 
-    if (action === "Regenerate") {
-      previousSuggestions.push(slug);
-      slug = await withSpinner("Regenerating branch name...", () =>
-        generateBranchName(diff, { previousSuggestions })
-      );
-      continue;
+    throw new Error("Failed to generate a branch name.");
+  } catch (error) {
+    if (isPromptCancelled(error)) {
+      console.log("\nBranch creation cancelled.");
+      return;
     }
-
-    console.log("Branch creation cancelled.");
-    return;
+    throw error;
   }
 }
 
 export {
-  truncateDiff,
-  generateCommitMessage,
   generateBranchName,
-  promptCommit,
+  generateCommitMessage,
   promptBranchCreation,
+  promptCommit,
+  truncateDiff,
 };
